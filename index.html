@@ -392,6 +392,9 @@
         .btn-copy:hover { background: #2da84a; }
         .btn-clear { background: #ff3b30; color: white; }
         .btn-clear:hover { background: #d62d22; }
+        /* 展开/收起按钮：桌面端隐藏，仅手机显示 */
+        .btn-toggle-panel { display: none; background: #6c757d; color: white; }
+        .btn-toggle-panel:hover { background: #5a6268; }
         #summaryBox {
             width: 100%;
             height: 120px;
@@ -608,16 +611,48 @@
             .container { padding: 12px; }
             h1 { font-size: 17px; }
 
-            /* 手机端：汇总区不再固定，跟页面流走（解决卡片被遮挡） */
+            /* 手机端：汇总区固定底部，可折叠/展开 */
             .summary-section {
-                position: static;
-                box-shadow: none;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
                 border-top: 1px solid #eee;
-                margin-top: 16px;
-                padding: 12px;
-                border-radius: 8px;
+                margin-top: 0;
+                padding: 10px 12px;
+                border-radius: 0;
                 background: white;
+                max-height: 70vh;
+                overflow-y: auto;
+                transition: max-height 0.28s ease, padding 0.28s ease;
+                z-index: 1000;
             }
+            /* 折叠态：只露 1 行汇总框 + 3 个按钮 */
+            .summary-section.collapsed {
+                max-height: 105px;
+                overflow: hidden;
+                padding: 8px 12px;
+            }
+            .summary-section.collapsed .scheme-tabs,
+            .summary-section.collapsed .summary-top-row > .summary-left > h2,
+            .summary-section.collapsed .summary-top-row > .summary-left > .summary-controls > .toggle-column,
+            .summary-section.collapsed .color-filter-panel {
+                display: none;
+            }
+            .summary-section.collapsed .summary-top-row { margin-bottom: 6px; }
+            .summary-section.collapsed .summary-controls { margin-bottom: 0; }
+            .summary-section.collapsed #summaryBox {
+                height: 38px;
+                font-size: 12px;
+                padding: 6px 8px;
+                line-height: 1.4;
+            }
+            /* 展开/收起按钮 仅手机显示 */
+            .btn-toggle-panel { display: inline-flex; align-items: center; justify-content: center; }
+            /* 给 body 留出折叠态高度 */
+            body { padding-bottom: 120px !important; }
+
             /* 切换到短标签 */
             .lbl-full { display: none; }
             .lbl-short { display: inline; }
@@ -640,13 +675,13 @@
             }
             .summary-top-row { flex-direction: column; gap: 10px; }
             .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
-            /* 复制 / 清空汇总 等宽两列；开关横向并排 */
+            /* 复制 / 清空 / 展开 等宽三列；开关下面一排 */
             .summary-controls {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px 8px;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 8px 6px;
             }
-            .summary-controls button { padding: 9px 8px; font-size: 13px; }
+            .summary-controls button { padding: 9px 6px; font-size: 13px; white-space: nowrap; }
             .toggle-column {
                 grid-column: 1 / -1;
                 flex-direction: row;
@@ -658,31 +693,11 @@
             .auth-modal-content { padding: 20px; width: 92%; }
             .intro-banner { padding: 8px 12px; font-size: 12px; }
 
-            /* 手机端：浮动"跳到汇总区"按钮 */
-            .float-to-summary {
-                display: flex;
-                position: fixed;
-                bottom: 16px;
-                right: 16px;
-                width: 52px;
-                height: 52px;
-                border-radius: 50%;
-                background: #007aff;
-                color: white;
-                align-items: center;
-                justify-content: center;
-                font-size: 22px;
-                box-shadow: 0 4px 12px rgba(0,122,255,0.4);
-                cursor: pointer;
-                z-index: 997;
-                border: none;
-            }
-            .float-to-summary:active { transform: scale(0.95); }
+            /* 浮动跳转按钮已不需要——面板始终在底部 */
+            .float-to-summary { display: none !important; }
         }
-        /* 桌面端隐藏浮动按钮 */
-        @media (min-width: 721px) {
-            .float-to-summary { display: none; }
-        }
+        /* 桌面端永远隐藏浮动跳转按钮 */
+        .float-to-summary { display: none; }
         /* 极窄屏（小于 320px 的设备/分屏）才退化为 1 列 */
         @media (max-width: 319px) {
             .grid { grid-template-columns: 1fr; }
@@ -721,7 +736,7 @@
     </div>
 
     <!-- 固定在底部的汇总区域 -->
-    <div class="summary-section">
+    <div class="summary-section collapsed">
         <div class="scheme-tabs">
             <div class="scheme-tabs-list" id="schemeTabsList"></div>
             <div class="scheme-controls">
@@ -739,6 +754,7 @@
                 <div class="summary-controls">
                     <button class="btn-copy" data-tip="复制汇总框全部内容到剪贴板（快捷键 Ctrl/Cmd+Enter）" onclick="copyToClipboard()">📋 <span class="lbl-full">复制全部</span><span class="lbl-short">复制</span></button>
                     <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空汇总框</span><span class="lbl-short">清空汇总</span></button>
+                    <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
                     <div class="toggle-column">
                         <div class="toggle-container">
                             <span class="toggle-label">标题汇总</span>
@@ -1385,6 +1401,43 @@
             }
         }
 
+        /* ========== 底部面板 折叠/展开（仅手机生效）========== */
+        function toggleBottomPanel() {
+            const sec = document.querySelector('.summary-section');
+            sec.classList.toggle('collapsed');
+            const collapsed = sec.classList.contains('collapsed');
+            localStorage.setItem('panelCollapsed', collapsed ? '1' : '0');
+            updatePanelToggleBtn();
+            // 展开时滚动汇总框可见（如果之前在编辑长内容）
+            if (!collapsed) {
+                setTimeout(() => {
+                    const sb = el('summaryBox');
+                    if (sb) sb.scrollTop = sb.scrollHeight;
+                }, 300);
+            }
+        }
+        function updatePanelToggleBtn() {
+            const btn = el('togglePanelBtn');
+            if (!btn) return;
+            const collapsed = document.querySelector('.summary-section').classList.contains('collapsed');
+            btn.innerHTML = collapsed ? '⬆ 展开' : '⬇ 收起';
+        }
+        function initBottomPanel() {
+            const sec = document.querySelector('.summary-section');
+            // 桌面端永远不折叠
+            if (window.innerWidth > 720) {
+                sec.classList.remove('collapsed');
+            } else if (localStorage.getItem('panelCollapsed') === '0') {
+                sec.classList.remove('collapsed');
+            }
+            updatePanelToggleBtn();
+            // 视口变化时（旋转屏幕、拖动浏览器窗口）重新判断
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 720) sec.classList.remove('collapsed');
+                updatePanelToggleBtn();
+            });
+        }
+
         /* ========== Logo 三态翻转 ========== */
         function startBrandRotation() {
             const states = document.querySelectorAll('.brand-state');
@@ -1498,6 +1551,7 @@
             initColorFilterPanel();
             maybeShowIntro();
             startBrandRotation();
+            initBottomPanel();
 
             // 恢复开关状态
             if (localStorage.getItem('titleToggleState') === 'off') el('titleToggle').classList.add('off');
