@@ -90,7 +90,7 @@
 
 <script>
 const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
+const SUPABASE_ANON_KEY = 'sb_publishable_wWzHA_tkjquLLLa42OY6xQ_6JjzQzGt';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATEGORIES = {
@@ -183,7 +183,7 @@ async function init() {
         ${data.description ? `<div class="scheme-desc">${escapeHtml(data.description)}</div>` : ''}
         ${imgPreview}
         ${chipPreview ? `<div class="card-chips">${chipPreview}${extraCount}</div>` : '<p style="color:#888;margin:20px 0;">（空方案）</p>'}
-        <button class="btn" id="importBtn" onclick="doImport()">📥 导入到我的贴词吧</button>
+        <button class="btn" id="importBtn" onclick="doImport()">📥 导入到我的方案</button>
         <button class="btn-secondary" onclick="copyLink()">🔗 复制分享链接</button>
         <div class="info-tip">导入后可在贴词吧中编辑和使用这些提示词卡片。</div>
     `;
@@ -231,7 +231,7 @@ async function doImport() {
     if (!data) {
         errorBox.textContent = '方案不存在';
         btn.disabled = false;
-        btn.textContent = '📥 导入到我的贴词吧';
+        btn.textContent = '📥 导入到我的方案';
         return;
     }
 
