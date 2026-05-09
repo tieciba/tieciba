@@ -821,6 +821,16 @@
         transition: background 0.2s;
     }
     .nav-explore-icon:hover { background: #f0f0f0; }
+
+    .save-status {
+        font-size: 12px;
+        color: #34c759;
+        cursor: pointer;
+        min-width: 60px;
+        text-align: center;
+        display: inline-block;
+    }
+    .save-status:hover { opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -862,7 +872,7 @@
             <div class="scheme-controls">
                 <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
                 <button data-tip="清空当前方案的所有卡片内容" onclick="clearCurrentScheme()">🔄 <span class="lbl-full">重置方案</span><span class="lbl-short">重置</span></button>
-                <button data-tip="把当前方案立刻同步到云端（已登录）和本地" onclick="saveCurrentScheme()">💾 <span class="lbl-full">保存当前方案</span><span class="lbl-short">保存</span></button>
+                <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
                 <button data-tip="生成分享链接，让其他人导入你的方案" onclick="shareCurrentScheme()">🔗 <span class="lbl-full">分享方案</span><span class="lbl-short">分享</span></button>
                 <button data-tip="把当前方案保存为 .txt 文件下载到本地" onclick="exportScheme()">📤 <span class="lbl-full">导出方案到本地</span><span class="lbl-short">导出</span></button>
                 <button data-tip="从本地 .txt 文件读取内容填充到卡片" onclick="importScheme()">📥 <span class="lbl-full">从本地导入方案</span><span class="lbl-short">导入</span></button>
@@ -1029,7 +1039,12 @@
                 el(`title${i}`).addEventListener('mouseleave', hidePreview);
                 el(`content${i}`).addEventListener('mouseenter', (e) => showPreview(i, e));
                 el(`content${i}`).addEventListener('mouseleave', hidePreview);
+                // 自动保存
+                el(`title${i}`).addEventListener('input', debouncedAutoSave);
+                el(`content${i}`).addEventListener('input', debouncedAutoSave);
             }
+            // 初始化保存状态
+            if (el('saveStatus')) { el('saveStatus').textContent = ''; }
 
             // 末尾追加升级 CTA（最高层级 ultra 不显示）
             if (currentTier !== 'ultra') {
@@ -1212,6 +1227,31 @@
                 data.inputs.push({ title, content, color });
             }
             return data;
+        }
+
+        let saveDebounceTimer = null;
+        function debouncedAutoSave() {
+            const status = el('saveStatus');
+            if (status) {
+                status.textContent = '🔄 保存中…';
+                status.style.color = '#888';
+            }
+            clearTimeout(saveDebounceTimer);
+            saveDebounceTimer = setTimeout(async () => {
+                await saveCurrentScheme(false);
+                if (el('saveStatus')) {
+                    el('saveStatus').textContent = '💾 已自动保存';
+                    el('saveStatus').style.color = '#34c759';
+                }
+            }, 2000);
+        }
+
+        async function forceSave() {
+            clearTimeout(saveDebounceTimer);
+            const status = el('saveStatus');
+            if (status) { status.textContent = '🔄 保存中…'; status.style.color = '#888'; }
+            await saveCurrentScheme(true);
+            if (status) { status.textContent = '💾 已自动保存'; status.style.color = '#34c759'; }
         }
 
         async function saveCurrentScheme(showToastMessage = true) {
