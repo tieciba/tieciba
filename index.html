@@ -984,7 +984,7 @@
     <!-- 导入确认弹窗 -->
     <div class="share-modal" id="importConfirmModal">
         <div class="share-modal-content import-confirm-content">
-            <span class="modal-close" onclick="closeImportConfirm()">×</span>
+            <span class="modal-close" data-action="cancel-import">×</span>
             <h3>📥 导入方案</h3>
             <div class="scheme-preview" id="importPreview"></div>
             <div id="importWarning"></div>
@@ -2342,19 +2342,24 @@
         window.closeImportConfirm = closeImportConfirm;
         window.onImportSchemeChange = onImportSchemeChange;
 
-        // 事件委托：导入弹窗所有按钮（静态+动态均生效，不依赖 onclick 属性）
-        document.getElementById('importConfirmModal').addEventListener('click', function(e) {
-            const btn = e.target.closest('button[data-action]');
-            if (!btn) return;
-            const action = btn.dataset.action;
-            if (action === 'cancel-import') {
-                closeImportConfirm();
-            } else if (action === 'confirm-import') {
-                const ow = btn.dataset.overwrite ? parseInt(btn.dataset.overwrite, 10) : undefined;
-                confirmImport(ow);
-            }
-        });
-        document.getElementById('importSchemeSelect').addEventListener('change', onImportSchemeChange);
+        // 事件委托：导入弹窗所有按钮和关闭图标（静态+动态均生效）
+        (function bindModalEvents() {
+            var modal = document.getElementById('importConfirmModal');
+            if (!modal) return;
+            modal.addEventListener('click', function(e) {
+                var el = e.target.closest('[data-action]');
+                if (!el) return;
+                var action = el.dataset.action;
+                if (action === 'cancel-import') {
+                    closeImportConfirm();
+                } else if (action === 'confirm-import') {
+                    var ow = el.dataset.overwrite ? parseInt(el.dataset.overwrite, 10) : undefined;
+                    confirmImport(ow);
+                }
+            });
+            var sel = document.getElementById('importSchemeSelect');
+            if (sel) sel.addEventListener('change', onImportSchemeChange);
+        })();
 
         function escapeHtml(s) {
             const d = document.createElement('div');
