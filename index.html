@@ -796,6 +796,9 @@
     .import-btn-ok { background: #007aff; color: white; }
     .import-btn-cancel { background: #f0f0f0; color: #333; }
     .import-btn-overwrite { background: #ff9500; color: white; }
+    .import-scheme-select { margin-bottom: 16px; }
+    .import-scheme-select label { font-size: 13px; color: #666; display: block; margin-bottom: 6px; }
+    .import-scheme-select select { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; background: white; font-family: inherit; }
 
     /* 探索图标按钮 */
     .nav-explore-icon {
@@ -985,6 +988,10 @@
             <h3>📥 导入方案</h3>
             <div class="scheme-preview" id="importPreview"></div>
             <div id="importWarning"></div>
+            <div class="import-scheme-select" id="importSchemeSelectWrap">
+                <label>导入到：</label>
+                <select id="importSchemeSelect" onchange="onImportSchemeChange()"></select>
+            </div>
             <div class="import-actions" id="importActions">
                 <button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>
                 <button class="import-btn-ok" id="importBtnOk" onclick="confirmImport()">导入为新方案</button>
@@ -2188,19 +2195,79 @@
                 warningHtml += `<div class="import-dup-warning">📌 你已导入过此方案（方案 #${existingIds.join(', #')}）。要覆盖旧方案还是新建？</div>`;
             }
             warning.innerHTML = warningHtml;
+            // 方案选择器：列出所有可用方案 + 临时方案
+            const select = el('importSchemeSelect');
+            let opts = '';
+            const maxSchemes = cfg.schemes || 3;
+            let hasEmpty = false;
+            for (let i = 1; i <= maxSchemes; i++) {
+                const hasData = localStorage.getItem(`scheme${i}`);
+                const data = hasData ? JSON.parse(hasData) : null;
+                const filledCards = data?.inputs?.filter(c => c.title || c.content)?.length || 0;
+                const label = hasData && filledCards > 0
+                    ? `方案${i}（已有 ${filledCards} 张卡片）`
+                    : `方案${i}（空）`;
+                const disabled = hasData && filledCards > 0 ? '' : '';
+                opts += `<option value="${i}"${hasData && filledCards > 0 ? ' data-occupied="1"' : ''}>${label}</option>`;
+                if (!hasData || filledCards === 0) hasEmpty = true;
+            }
+            // 临时方案（24h）
+            opts += `<option value="temp">🕐 临时方案（保存24小时）</option>`;
+            select.innerHTML = opts;
+            // 默认选中第一个空方案，没有则选临时
+            if (hasEmpty) {
+                for (let i = 1; i <= maxSchemes; i++) {
+                    const hasData = localStorage.getItem(`scheme${i}`);
+                    const data = hasData ? JSON.parse(hasData) : null;
+                    const filledCards = data?.inputs?.filter(c => c.title || c.content)?.length || 0;
+                    if (!hasData || filledCards === 0) {
+                        select.value = String(i);
+                        break;
+                    }
+                }
+            } else {
+                select.value = 'temp';
+            }
+            el('importSchemeSelectWrap').style.display = 'block';
             // 操作按钮
             const actions = el('importActions');
             let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
             if (existingIds.length > 0) {
                 btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
             }
-            btns += `<button class="import-btn-ok" onclick="confirmImport()">导入为新方案</button>`;
+            const selectedVal = el('importSchemeSelect').value;
+            btns += `<button class="import-btn-ok" onclick="confirmImport()">${selectedVal === 'temp' ? '导入为临时方案' : '导入到方案' + selectedVal}</button>`;
             actions.innerHTML = btns;
             el('importConfirmModal').classList.add('show');
         }
 
+        function onImportSchemeChange() {
+            const select = el('importSchemeSelect');
+            const val = select.value;
+            const actions = el('importActions');
+            const existingIds = []; // re-collect
+            if (pendingImportData) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('imported_')) {
+                        const saved = JSON.parse(localStorage.getItem(key));
+                        if (saved && saved.source === pendingImportData.source) {
+                            existingIds.push(parseInt(key.replace('imported_', '')));
+                        }
+                    }
+                }
+            }
+            let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
+            if (existingIds.length > 0) {
+                btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
+            }
+            btns += `<button class="import-btn-ok" onclick="confirmImport()">${val === 'temp' ? '导入为临时方案' : '导入到方案' + val}</button>`;
+            actions.innerHTML = btns;
+        }
+
         function closeImportConfirm() {
             el('importConfirmModal').classList.remove('show');
+            el('importSchemeSelectWrap').style.display = 'none';
             // 用户取消导入，清理 pendingImport
             localStorage.removeItem('pendingImport');
             pendingImportData = null;
@@ -2224,8 +2291,17 @@
                 localStorage.setItem('_extra_schemes', JSON.stringify(filtered));
             }
 
-            // 存为导入方案（方案号 900+）
-            const impId = overwriteId || (900 + Date.now() % 100);
+            // 读取用户选择的导入目标方案
+            const chosenScheme = el('importSchemeSelect').value; // '1'-'10' or 'temp'
+            const isTemp = chosenScheme === 'temp';
+            let impId;
+            if (overwriteId) {
+                impId = overwriteId; // 覆盖已有导入
+            } else if (isTemp) {
+                impId = 900 + (Date.now() % 100); // 临时方案
+            } else {
+                impId = parseInt(chosenScheme, 10); // 导入到指定方案
+            }
             const cfg = tierConfig();
             localStorage.setItem(`imported_${impId}`, JSON.stringify({
                 source: imp.source, title: imp.title,
