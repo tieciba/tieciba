@@ -15,6 +15,7 @@
             min-height: 100vh;
             padding-top: 60px;
             padding-bottom: 60px;
+            overflow-x: hidden;
         }
 
         /* ===== 顶部导航栏 ===== */
@@ -79,7 +80,7 @@
 
         /* ===== 主容器 ===== */
         .container {
-            max-width: 900px;
+            max-width: min(900px, 100%);
             margin: 0 auto;
             padding: 0 20px;
         }
@@ -182,6 +183,7 @@
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid #f0f0f0;
+            flex-wrap: wrap;
         }
         .stat-item {
             text-align: center;
@@ -226,13 +228,149 @@
                 grid-template-columns: repeat(3, 1fr);
             }
         }
-        @media (max-width: 600px) {
+        /* ===== 响应式: 平板/分屏 (≤768px) ===== */
+        @media (max-width: 768px) {
             .schemes-grid {
                 grid-template-columns: 1fr;
             }
-            .profile-header { padding: 28px 20px; }
-            .profile-header .display-name { font-size: 22px; }
-            .stats-row { gap: 20px; }
+            .profile-header {
+                padding: 32px 20px;
+                margin-top: 16px;
+            }
+            .profile-header .display-name { font-size: 24px; }
+            .profile-header .avatar,
+            .profile-header .avatar-placeholder {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+            }
+            .profile-header .bio {
+                max-width: 100%;
+            }
+            .stats-row { gap: 24px; }
+            .container { padding: 0 12px; }
+            .top-bar { padding: 0 12px; }
+            .top-bar .brand { font-size: 14px; }
+            .top-bar .nav-links { gap: 10px; }
+            .top-bar .nav-links a { font-size: 12px; }
+            .scheme-card { padding: 16px; }
+            .scheme-card .card-title { font-size: 15px; }
+        }
+
+        /* ===== 响应式: 手机 (≤480px) ===== */
+        @media (max-width: 480px) {
+            body {
+                padding-top: 48px;
+                padding-bottom: 40px;
+            }
+            .top-bar {
+                height: 44px;
+                padding: 0 8px;
+            }
+            .top-bar .brand { font-size: 13px; }
+            .top-bar .nav-links { gap: 6px; }
+            .top-bar .nav-links a { font-size: 11px; }
+            .top-bar .nav-links .btn-login {
+                padding: 4px 10px;
+                font-size: 11px;
+            }
+            .top-bar .user-badge { font-size: 11px; }
+            .top-bar .user-badge img {
+                width: 22px;
+                height: 22px;
+            }
+            .container { padding: 0 8px; }
+            .profile-header {
+                padding: 24px 14px;
+                margin-top: 12px;
+            }
+            .profile-header .avatar,
+            .profile-header .avatar-placeholder {
+                width: 80px;
+                height: 80px;
+                font-size: 32px;
+                margin-bottom: 12px;
+            }
+            .profile-header .display-name {
+                font-size: 20px;
+                margin-bottom: 6px;
+            }
+            .profile-header .bio {
+                font-size: 13px;
+                margin-bottom: 12px;
+            }
+            .profile-header .meta-row {
+                gap: 12px;
+                font-size: 12px;
+                margin-bottom: 16px;
+            }
+            .stats-row {
+                gap: 16px;
+                margin-top: 16px;
+                padding-top: 16px;
+            }
+            .stat-item .stat-num { font-size: 18px; }
+            .stat-item .stat-label { font-size: 11px; }
+            .btn-edit-profile {
+                padding: 6px 14px;
+                font-size: 12px;
+            }
+            .schemes-section { margin-top: 16px; }
+            .schemes-section .section-title { font-size: 16px; }
+            .scheme-card {
+                padding: 14px;
+                border-radius: 8px;
+            }
+            .scheme-card .card-title { font-size: 14px; }
+            .scheme-card .card-desc { font-size: 12px; }
+            .scheme-card .card-images img {
+                width: 48px;
+                height: 48px;
+            }
+            .scheme-card .card-footer {
+                font-size: 11px;
+                padding-top: 8px;
+            }
+            .scheme-card .card-footer .stats { gap: 8px; }
+            .scheme-card .card-footer .card-count {
+                font-size: 10px;
+                padding: 2px 6px;
+            }
+            .modal-box {
+                padding: 20px 16px;
+                width: 100%;
+                border-radius: 10px;
+            }
+            .modal-box h3 { font-size: 16px; margin-bottom: 14px; }
+            .modal-box label { font-size: 12px; }
+            .modal-box input,
+            .modal-box textarea {
+                font-size: 13px;
+                padding: 8px 10px;
+                margin-bottom: 12px;
+            }
+            .modal-box textarea { min-height: 64px; }
+            .modal-box .btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+            .modal-box .btn-row { gap: 8px; }
+            .toast {
+                top: 56px;
+                right: 8px;
+                left: 8px;
+                font-size: 13px;
+                padding: 8px 14px;
+                text-align: center;
+            }
+            .footer {
+                padding: 20px 12px;
+                font-size: 11px;
+            }
+            .loader { padding: 40px 0; }
+            .empty-state, .error-state {
+                padding: 40px 16px;
+            }
         }
 
         /* ===== 方案卡片 ===== */

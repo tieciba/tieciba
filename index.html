@@ -1242,14 +1242,88 @@
         function handleShareImagePicked(e) {
             const file = e.target.files[0];
             if (!file) return;
-            if (file.size > 500 * 1024) { showToast('图片不能超过500KB'); e.target.value = ''; return; }
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                shareImages.push({ file: file, dataURL: ev.target.result });
-                refreshShareImageSlots();
-            };
-            reader.readAsDataURL(file);
+            if (!file.type.match(/image\/(jpeg|png|webp)/)) { showToast('仅支持 JPG/PNG/WebP'); e.target.value = ''; return; }
+            compressAndAddImage(file);
             e.target.value = '';
+        }
+
+        async function compressAndAddImage(file) {
+            showToast('压缩中…');
+            try {
+                const img = await loadImage(file);
+                const { blob, dataURL } = await compressImage(img, file);
+                shareImages.push({ file: blob, dataURL: dataURL, originalName: file.name });
+                refreshShareImageSlots();
+                showToast(`已压缩至 ${(blob.size/1024).toFixed(0)}KB`);
+            } catch (e) {
+                showToast('图片处理失败：' + e.message);
+            }
+        }
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('无法加载图片'));
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function compressImage(img, originalFile) {
+            return new Promise((resolve, reject) => {
+                const MAX_W = 1600;  // 最大宽度
+                const MAX_H = 1600;  // 最大高度
+                const TARGET_KB = 450; // 目标大小（KB）
+                let w = img.naturalWidth;
+                let h = img.naturalHeight;
+
+                // 缩放到 MAX_W x MAX_H 以内，保持比例
+                if (w > MAX_W || h > MAX_H) {
+                    const ratio = Math.min(MAX_W / w, MAX_H / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                URL.revokeObjectURL(img.src);
+
+                // 二分法调整 JPEG 质量，找到 ≤TARGET_KB
+                let quality = 0.85;
+                const tryQuality = (q) => new Promise(res => {
+                    canvas.toBlob(b => res(b), 'image/jpeg', q);
+                });
+
+                const attempt = async () => {
+                    let blob = await tryQuality(quality);
+                    // 如果超过目标，降低质量重试（最多试 5 次）
+                    for (let i = 0; i < 5 && blob && blob.size > TARGET_KB * 1024; i++) {
+                        quality -= 0.12;
+                        if (quality < 0.2) quality = 0.2;
+                        blob = await tryQuality(quality);
+                    }
+                    // 如果还是太大，缩小尺寸
+                    if (blob && blob.size > TARGET_KB * 1024 && w > 600) {
+                        const scale = Math.sqrt(TARGET_KB * 1024 / blob.size);
+                        const nw = Math.round(w * scale);
+                        const nh = Math.round(h * scale);
+                        canvas.width = nw;
+                        canvas.height = nh;
+                        ctx.drawImage(img, 0, 0, nw, nh);
+                        blob = await tryQuality(0.7);
+                    }
+                    if (!blob) return reject(new Error('压缩失败'));
+                    // dataURL 用于预览
+                    const reader = new FileReader();
+                    reader.onload = () => resolve({ blob, dataURL: reader.result });
+                    reader.onerror = () => reject(new Error('读取预览失败'));
+                    reader.readAsDataURL(blob);
+                };
+                attempt();
+            });
         }
 
         function removeShareImage(idx) {
@@ -1299,7 +1373,8 @@
                     // 公开分享：上传图片到 Supabase Storage + 存 public_schemes
                     let imageUrls = [];
                     for (const img of shareImages) {
-                        const fileName = `${currentUser.id}/${Date.now()}_${img.file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+                        const safeName = (img.originalName || 'image.jpg').replace(/[^a-zA-Z0-9._-]/g,'_');
+                        const fileName = `${currentUser.id}/${Date.now()}_${safeName}`;
                         const { error: uploadError } = await supa.storage
                             .from('scheme-images').upload(fileName, img.file, {
                                 cacheControl: '3600', upsert: false
