@@ -1,0 +1,8 @@
+# 本地开发文件，不要传到公开仓库
+邀请码.txt
+gen_codes.py
+insert_invite_codes.sql
+tieciba.original.html
+*.bak
+.DS_Store
+Thumbs.db

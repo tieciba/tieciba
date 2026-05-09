@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贴词吧 - 提示词汇总工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            padding: 20px;
+            padding-top: 70px; /* 顶部留给 top-bar */
+            padding-bottom: 320px; /* 底部留给汇总区 */
+            background: #f5f5f5;
+            transition: background-color 0.3s;
+        }
+        body.flash-green { background: #34c759 !important; }
+        body.flash-red   { background: #ff3b30 !important; }
+        body.flash-blue  { background: #007aff !important; }
+
+        /* 顶部栏 */
+        .top-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 50px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 999;
+        }
+        .top-bar .brand {
+            font-size: 16px;
+            font-weight: 600;
+            color: #007aff;
+        }
+        .top-bar .auth-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .tier-badge {
+            font-size: 12px;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            color: #555;
+        }
+        .tier-badge.basic { background: #e3f2fd; color: #1976d2; }
+        .tier-badge.pro   { background: #fff3e0; color: #ef6c00; }
+        .tier-badge.max   { background: #fce4ec; color: #c2185b; }
+        .tier-badge .tier-user-email {
+            margin-left: 6px;
+            color: #888;
+        }
+        .top-bar button {
+            padding: 6px 14px;
+            border: 1px solid #007aff;
+            background: white;
+            color: #007aff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .top-bar button:hover { background: #007aff; color: white; }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .input-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background-color 0.3s;
+            position: relative;
+        }
+        .input-item input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .input-item input.title {
+            font-weight: 500;
+            max-width: 90px;
+        }
+        .title-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .title-row input {
+            flex: 1;
+            min-width: 0;
+        }
+        .color-picker-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .color-picker-btn:hover { background: #e0e0e0; }
+
+        /* 18色块选择器（悬浮框） */
+        .color-blocks {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            width: 200px;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+        }
+        .color-blocks.show { display: grid; }
+        .color-block {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid transparent;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .color-block:hover { transform: scale(1.15); border-color: #333; }
+        .color-block.selected { border-color: #007aff; border-width: 3px; }
+
+        /* 右侧色块过滤面板 */
+        .summary-top-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+            align-items: flex-start;
+        }
+        .summary-left { flex: 1; min-width: 0; }
+        .color-filter-panel {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            padding-top: 8px;
+            width: 150px;
+            flex-shrink: 0;
+        }
+        .filter-color-block {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-color-block:hover { transform: scale(1.1); border-color: #333; }
+        .filter-color-block.active {
+            border-color: #007aff;
+            border-width: 3px;
+            box-shadow: 0 0 8px rgba(0,122,255,0.5);
+        }
+        .input-item input.content { font-size: 12px; }
+        .input-item button:not(.color-picker-btn) {
+            padding: 4px 8px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .input-item button:not(.color-picker-btn):hover { background: #0051d5; }
+        .input-item button:not(.color-picker-btn):active { background: #004bb5; }
+
+        /* 固定在底部的汇总区域 */
+        .summary-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 2px solid #eee;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 15px 20px;
+        }
+        .summary-section h2 { font-size: 16px; margin-bottom: 10px; color: #333; }
+
+        /* 方案切换区域 */
+        .scheme-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .scheme-tabs-list {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            max-width: calc(100% - 420px);
+            flex: 1;
+        }
+        .scheme-tab {
+            padding: 6px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            background: white;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .scheme-tab:hover { background: #f0f0f0; }
+        .scheme-tab.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+        .scheme-controls { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+        .scheme-controls button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            background: white;
+        }
+        .scheme-controls button:hover { background: #f0f0f0; }
+
+        .summary-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .toggle-column { display: flex; flex-direction: column; gap: 6px; }
+        .summary-controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 滑动开关样式 */
+        .toggle-container { display: flex; align-items: center; gap: 8px; margin-left: 10px; }
+        .toggle-label { font-size: 13px; color: #333; white-space: nowrap; }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #34c759;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-switch.off { background: #ccc; }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .toggle-switch.off::after { left: 22px; }
+        .btn-copy { background: #34c759; color: white; }
+        .btn-copy:hover { background: #2da84a; }
+        .btn-clear { background: #ff3b30; color: white; }
+        .btn-clear:hover { background: #d62d22; }
+        #summaryBox {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .toast {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: #34c759;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+        .toast.show { opacity: 1; }
+
+        /* 预览框 */
+        .preview-box {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            max-width: 400px;
+            word-wrap: break-word;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .preview-box.show { opacity: 1; }
+        .preview-box .preview-title { font-weight: bold; margin-bottom: 6px; color: #ffd60a; }
+        .preview-box .preview-content { line-height: 1.5; }
+
+        /* 登录/注册 弹窗 */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-modal.show { display: flex; }
+        .auth-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 360px;
+            max-width: 90%;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #aaa;
+            line-height: 1;
+        }
+        .modal-close:hover { color: #333; }
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            cursor: pointer;
+            color: #666;
+            border-bottom: 2px solid transparent;
+        }
+        .auth-tab.active {
+            color: #007aff;
+            border-bottom-color: #007aff;
+            font-weight: 500;
+        }
+        .auth-modal input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .auth-modal input:focus { outline: none; border-color: #007aff; }
+        #authSubmitBtn {
+            width: 100%;
+            padding: 11px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        #authSubmitBtn:hover { background: #0051d5; }
+        #authSubmitBtn:disabled { background: #999; cursor: wait; }
+        .auth-error {
+            margin-top: 10px;
+            color: #ff3b30;
+            font-size: 13px;
+            min-height: 18px;
+        }
+        .auth-info {
+            margin-top: 10px;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* 引导横幅（首次访问） */
+        .intro-banner {
+            position: fixed;
+            top: 50px;
+            left: 0; right: 0;
+            background: #fff8e1;
+            border-bottom: 1px solid #ffe082;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: #5d4037;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 998;
+        }
+        .intro-banner.hide { display: none; }
+        .intro-banner .intro-content { line-height: 1.5; }
+        .intro-banner .intro-content b { color: #007aff; }
+        .intro-banner .intro-close {
+            background: transparent;
+            border: 1px solid #b39c7a;
+            color: #5d4037;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .intro-banner .intro-close:hover { background: #b39c7a; color: white; }
+        body.has-intro { padding-top: 110px; }
+
+        /* 升级 CTA 卡片（卡片末尾占位） */
+        .upgrade-cta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e3f2fd 0%, #fce4ec 100%);
+            border: 2px dashed #90caf9;
+            border-radius: 6px;
+            padding: 20px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.15s;
+            min-height: 110px;
+        }
+        .upgrade-cta:hover { transform: scale(1.02); border-color: #1976d2; }
+        .upgrade-cta .upgrade-icon { font-size: 22px; margin-bottom: 6px; }
+        .upgrade-cta .upgrade-title { font-size: 13px; font-weight: 600; color: #1976d2; margin-bottom: 4px; }
+        .upgrade-cta .upgrade-desc { font-size: 11px; color: #666; }
+
+        /* 页脚 */
+        .footer-info {
+            text-align: center;
+            margin-top: 30px;
+            padding: 16px 12px;
+            font-size: 12px;
+            color: #999;
+            line-height: 1.7;
+        }
+        .footer-info a { color: #888; text-decoration: none; }
+        .footer-info a:hover { color: #007aff; }
+
+        /* 顶部栏：兑换邀请码 按钮 */
+        .top-bar .btn-redeem {
+            border-color: #ef6c00;
+            color: #ef6c00;
+        }
+        .top-bar .btn-redeem:hover { background: #ef6c00; color: white; }
+
+        /* 移动端适配 */
+        @media (max-width: 720px) {
+            body { padding: 10px; padding-top: 60px; padding-bottom: 380px; }
+            body.has-intro { padding-top: 130px; }
+            .top-bar { padding: 0 12px; height: 50px; }
+            .top-bar .brand { font-size: 14px; }
+            .top-bar .auth-area { gap: 6px; }
+            .tier-badge { font-size: 11px; padding: 3px 8px; }
+            .tier-badge .tier-user-email { display: none; }
+            .top-bar button { padding: 5px 10px; font-size: 12px; }
+            .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .container { padding: 12px; }
+            h1 { font-size: 17px; }
+            .summary-section { padding: 10px 12px; }
+            .scheme-tabs { flex-direction: column; align-items: stretch; gap: 8px; }
+            .scheme-tabs-list { max-width: 100%; }
+            .scheme-controls { margin-left: 0; flex-wrap: wrap; }
+            .scheme-controls button { padding: 5px 8px; font-size: 11px; }
+            .summary-top-row { flex-direction: column; gap: 8px; }
+            .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
+            .summary-controls { flex-wrap: wrap; }
+            .toggle-container { margin-left: 0; }
+            #summaryBox { height: 80px; }
+            .auth-modal-content { padding: 20px; width: 92%; }
+            .intro-banner { padding: 8px 12px; font-size: 12px; }
+        }
+        @media (max-width: 420px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <div class="brand">📌 贴词吧</div>
+        <div class="auth-area" id="authArea">
+            <span class="tier-badge" id="tierBadge">小杯 · 32卡 / 1方案</span>
+            <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
+            <button id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
+        </div>
+    </div>
+
+    <!-- 首次访问引导 -->
+    <div class="intro-banner hide" id="introBanner">
+        <div class="intro-content">
+            👋 新手提示：选中色块给卡片<b>分类</b>；点底部色块按颜色<b>批量汇总</b>；<b>Ctrl/Cmd + Enter</b> 一键复制全部。
+        </div>
+        <button class="intro-close" onclick="dismissIntro()">知道了</button>
+    </div>
+
+    <div class="container">
+        <h1>提示词汇总工具</h1>
+        <div class="grid" id="inputGrid"></div>
+        <div class="footer-info">
+            © 2026 贴词吧 · ICP 备案中 · 反馈：<a href="mailto:tieciba@gmail.com">tieciba@gmail.com</a><br>
+            <span id="footerExtra"></span>
+        </div>
+    </div>
+
+    <!-- 固定在底部的汇总区域 -->
+    <div class="summary-section">
+        <div class="scheme-tabs">
+            <div class="scheme-tabs-list" id="schemeTabsList"></div>
+            <div class="scheme-controls">
+                <button onclick="saveCurrentScheme()">💾 保存当前方案</button>
+                <button onclick="exportScheme()">📤 导出方案到本地</button>
+                <button onclick="clearCurrentScheme()">🗑️ 清空方案</button>
+                <button onclick="importScheme()">📥 从本地导入方案</button>
+                <input type="file" id="fileInput" accept=".txt" style="display: none;" onchange="handleFileUpload(event)">
+            </div>
+        </div>
+
+        <div class="summary-top-row">
+            <div class="summary-left">
+                <h2>汇总结果</h2>
+                <div class="summary-controls">
+                    <button class="btn-copy" onclick="copyToClipboard()">📋 复制全部</button>
+                    <button class="btn-clear" onclick="clearSummary()">🗑️ 清空汇总框</button>
+                    <div class="toggle-column">
+                        <div class="toggle-container">
+                            <span class="toggle-label">标题汇总</span>
+                            <div class="toggle-switch" id="titleToggle" onclick="toggleTitle()"></div>
+                        </div>
+                        <div class="toggle-container">
+                            <span class="toggle-label">汇总时换行</span>
+                            <div class="toggle-switch" id="newlineToggle" onclick="toggleNewline()"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="color-filter-panel" id="colorFilterPanel"></div>
+        </div>
+        <textarea id="summaryBox" placeholder="点击上方汇总按钮，内容会自动添加到这里..."></textarea>
+    </div>
+
+    <div class="toast" id="toast">已复制到剪贴板！</div>
+    <div class="preview-box" id="previewBox">
+        <div class="preview-title" id="previewTitle"></div>
+        <div class="preview-content" id="previewContent"></div>
+    </div>
+
+    <!-- 登录/注册 弹窗 -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-modal-content">
+            <span class="modal-close" onclick="closeAuthModal()">×</span>
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="loginTab" onclick="switchAuthTab('login')">登录</div>
+                <div class="auth-tab" id="registerTab" onclick="switchAuthTab('register')">注册</div>
+            </div>
+            <input type="email" id="authEmail" placeholder="邮箱" autocomplete="email">
+            <input type="password" id="authPassword" placeholder="密码（至少 6 位）" autocomplete="current-password">
+            <input type="text" id="authInviteCode" placeholder="邀请码（可选，凭码升级中杯）" style="display:none">
+            <button id="authSubmitBtn" onclick="submitAuth()">登录</button>
+            <div class="auth-error" id="authError"></div>
+            <div class="auth-info" id="authInfo">登录后可享受云同步、跨设备恢复方案。</div>
+        </div>
+    </div>
+
+    <!-- 兑换邀请码 弹窗 -->
+    <div class="auth-modal" id="redeemModal">
+        <div class="auth-modal-content">
+            <span class="modal-close" onclick="closeRedeemModal()">×</span>
+            <h3 style="margin-bottom: 16px; font-size: 16px;">🎟️ 兑换邀请码</h3>
+            <input type="text" id="redeemCodeInput" placeholder="例如 TC-XXXXXX" autocomplete="off">
+            <button id="redeemSubmitBtn" onclick="submitRedeem()">立即兑换</button>
+            <div class="auth-error" id="redeemError"></div>
+            <div class="auth-info">凭中杯邀请码可解锁 128 张卡片 / 3 套方案。每个邀请码只能用一次。</div>
+        </div>
+    </div>
+
+    <script>
+        /* ========== Supabase 配置 ========== */
+        const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
+        const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        /* ========== 会员层级配置 ========== */
+        const TIERS = {
+            free:  { name: '小杯',   cards: 32,  schemes: 1 },
+            basic: { name: '中杯',   cards: 128, schemes: 3 },
+            pro:   { name: '大杯',   cards: 256, schemes: 10 },
+            max:   { name: '超大杯', cards: 512, schemes: 100 }
+        };
+
+        const PRESET_COLORS = ['#FF4444', '#FF8800', '#FFDD00', '#88DD00', '#00DD88', '#00DDDD', '#0088DD', '#4444FF', '#8800FF', '#DD00DD', '#FF0088', '#FF6B9D', '#A0522D', '#708090', '#2F4F4F', '#FFE4B5', '#F0E68C', '#E6E6FA'];
+
+        /* ========== 全局状态 ========== */
+        let currentUser = null;
+        let currentTier = 'free';
+        let currentScheme = 1;
+        let authMode = 'login'; // 'login' or 'register'
+
+        /* ========== 工具函数 ========== */
+        function el(id) { return document.getElementById(id); }
+        function tierConfig() { return TIERS[currentTier] || TIERS.free; }
+
+        /* ========== 渲染：卡片网格 ========== */
+        function renderGrid() {
+            const grid = el('inputGrid');
+            grid.innerHTML = '';
+            const cardCount = tierConfig().cards;
+            for (let i = 1; i <= cardCount; i++) {
+                const item = document.createElement('div');
+                item.className = 'input-item';
+                item.id = `item${i}`;
+                item.innerHTML = `
+                    <div class="title-row">
+                        <input type="text" class="title" placeholder="标题${i}" maxlength="6" id="title${i}">
+                        <button class="color-picker-btn" type="button" onclick="toggleColorBlocks(${i})">🖌</button>
+                    </div>
+                    <div class="color-blocks" id="colorBlocks${i}">
+                        ${PRESET_COLORS.map((color) => `
+                            <div class="color-block"
+                                 style="background-color: ${color}"
+                                 onclick="selectColor(${i}, '${color}', this)"
+                                 data-color="${color}"></div>
+                        `).join('')}
+                    </div>
+                    <input type="text" class="content" placeholder="内容..." id="content${i}">
+                    <button onclick="addToSummary(${i})">汇总</button>
+                `;
+                grid.appendChild(item);
+                el(`title${i}`).addEventListener('mouseenter', (e) => showPreview(i, e));
+                el(`title${i}`).addEventListener('mouseleave', hidePreview);
+                el(`content${i}`).addEventListener('mouseenter', (e) => showPreview(i, e));
+                el(`content${i}`).addEventListener('mouseleave', hidePreview);
+            }
+
+            // 末尾追加升级 CTA（最高层级 max 不显示）
+            if (currentTier !== 'max') {
+                const cta = document.createElement('div');
+                cta.className = 'upgrade-cta';
+                const next = currentTier === 'free' ? '中杯' : currentTier === 'basic' ? '大杯' : '超大杯';
+                const nextCards = currentTier === 'free' ? 128 : currentTier === 'basic' ? 256 : 512;
+                cta.innerHTML = `
+                    <div class="upgrade-icon">⬆️</div>
+                    <div class="upgrade-title">升级到${next}</div>
+                    <div class="upgrade-desc">解锁 ${nextCards} 张卡片<br>${currentTier === 'free' ? '凭邀请码免费' : '点击查看价格'}</div>
+                `;
+                cta.onclick = () => {
+                    if (!currentUser) { openAuthModal('register'); return; }
+                    if (currentTier === 'free') { openRedeemModal(); return; }
+                    showToast('大杯/超大杯订阅功能即将上线，敬请期待');
+                };
+                grid.appendChild(cta);
+            }
+        }
+
+        /* ========== 渲染：方案 tabs ========== */
+        function renderSchemeTabs() {
+            const list = el('schemeTabsList');
+            list.innerHTML = '';
+            const total = tierConfig().schemes;
+            // 当前方案如果超过新层级上限，回到 1
+            if (currentScheme > total) currentScheme = 1;
+            for (let i = 1; i <= total; i++) {
+                const tab = document.createElement('div');
+                tab.className = 'scheme-tab' + (i === currentScheme ? ' active' : '');
+                tab.textContent = total <= 10 ? `方案${chineseNum(i)}` : `方案 ${i}`;
+                tab.onclick = () => switchScheme(i);
+                list.appendChild(tab);
+            }
+        }
+
+        function chineseNum(n) {
+            const map = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+            return map[n] || String(n);
+        }
+
+        /* ========== 渲染：顶部层级标签 ========== */
+        function refreshTierBadge() {
+            const badge = el('tierBadge');
+            const cfg = tierConfig();
+            badge.className = 'tier-badge ' + currentTier;
+            const userPart = currentUser ? `<span class="tier-user-email">${currentUser.email}</span>` : '';
+            badge.innerHTML = `${cfg.name} · ${cfg.cards}卡 / ${cfg.schemes}方案${userPart}`;
+
+            const btn = el('loginBtn');
+            if (currentUser) {
+                btn.textContent = '退出';
+                btn.onclick = () => signOut();
+            } else {
+                btn.textContent = '登录 / 注册';
+                btn.onclick = () => openAuthModal('login');
+            }
+
+            // 兑换按钮：仅登录且未升级时显示
+            const redeemBtn = el('redeemBtn');
+            redeemBtn.style.display = (currentUser && currentTier === 'free') ? '' : 'none';
+        }
+
+        /* ========== 色块面板 ========== */
+        function initColorFilterPanel() {
+            const panel = el('colorFilterPanel');
+            if (!panel) return;
+            panel.innerHTML = PRESET_COLORS.map(color => `
+                <div class="filter-color-block"
+                     style="background-color: ${color}"
+                     onclick="filterByColor('${color}', this)"
+                     data-color="${color}"
+                     title="点击按此颜色汇总"></div>
+            `).join('');
+        }
+
+        function toggleColorBlocks(index) {
+            document.querySelectorAll('.color-blocks').forEach(b => b.classList.remove('show'));
+            const blocks = el(`colorBlocks${index}`);
+            blocks.classList.toggle('show');
+            if (blocks.classList.contains('show')) {
+                setTimeout(() => {
+                    const closeHandler = (e) => {
+                        if (!blocks.contains(e.target) && !e.target.closest('.color-picker-btn')) {
+                            blocks.classList.remove('show');
+                            document.removeEventListener('click', closeHandler);
+                        }
+                    };
+                    document.addEventListener('click', closeHandler);
+                }, 0);
+            }
+        }
+
+        function selectColor(index, color, element) {
+            const container = element.parentElement;
+            container.querySelectorAll('.color-block').forEach(b => b.classList.remove('selected'));
+            element.classList.add('selected');
+            const item = el(`item${index}`);
+            if (item) {
+                item.style.backgroundColor = color + '20';
+                const btn = item.querySelector('.color-picker-btn');
+                if (btn) btn.style.backgroundColor = color;
+                el(`colorBlocks${index}`).classList.remove('show');
+                saveCurrentScheme(false);
+            }
+        }
+
+        function filterByColor(color, element) {
+            element.classList.toggle('active');
+            const activeColors = Array.from(document.querySelectorAll('.filter-color-block.active'))
+                .map(b => b.dataset.color);
+            if (activeColors.length === 0) {
+                el('summaryBox').value = '';
+                return;
+            }
+            const includeTitles = !el('titleToggle').classList.contains('off');
+            const useNewline    = !el('newlineToggle').classList.contains('off');
+            const results = [];
+            const total = tierConfig().cards;
+            for (let i = 1; i <= total; i++) {
+                const item = el(`item${i}`);
+                if (!item) continue;
+                const sel = item.querySelector('.color-block.selected');
+                if (sel && activeColors.includes(sel.dataset.color)) {
+                    const t = el(`title${i}`).value.trim();
+                    const c = el(`content${i}`).value.trim();
+                    if (c) results.push((includeTitles && t) ? `【${t}】${c}` : c);
+                }
+            }
+            el('summaryBox').value = results.join(useNewline ? '\n' : '，');
+        }
+
+        /* ========== 方案切换 ========== */
+        function switchScheme(n) {
+            saveCurrentScheme(false);
+            currentScheme = n;
+            renderSchemeTabs();
+            loadScheme();
+            showToast(`已切换到方案 ${n}`);
+        }
+
+        /* ========== 保存/加载（云 + 本地）========== */
+        function collectSchemeData() {
+            const data = { inputs: [], summary: el('summaryBox').value };
+            const total = tierConfig().cards;
+            for (let i = 1; i <= total; i++) {
+                if (!el(`title${i}`)) continue;
+                const title = el(`title${i}`).value;
+                const content = el(`content${i}`).value;
+                const sel = el(`item${i}`).querySelector('.color-block.selected');
+                const color = sel ? sel.dataset.color : '#ffffff';
+                data.inputs.push({ title, content, color });
+            }
+            return data;
+        }
+
+        async function saveCurrentScheme(showToastMessage = true) {
+            const data = collectSchemeData();
+            // 本地始终保存（断网/未登录时仍能用）
+            localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(data));
+            // 登录用户：同步到云
+            if (currentUser) {
+                try {
+                    await supa.from('schemes').upsert({
+                        user_id: currentUser.id,
+                        scheme_number: currentScheme,
+                        data: data,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id,scheme_number' });
+                } catch (e) {
+                    console.warn('云同步失败（已本地保存）：', e);
+                }
+            }
+            if (showToastMessage) showToast(`方案${currentScheme} 已保存`);
+        }
+
+        async function loadScheme() {
+            let data = null;
+            // 登录用户优先从云读
+            if (currentUser) {
+                try {
+                    const { data: rows } = await supa
+                        .from('schemes')
+                        .select('data')
+                        .eq('user_id', currentUser.id)
+                        .eq('scheme_number', currentScheme)
+                        .maybeSingle();
+                    if (rows && rows.data) data = rows.data;
+                } catch (e) { console.warn('云读取失败，回退本地：', e); }
+            }
+            // 回退本地
+            if (!data) {
+                const saved = localStorage.getItem(`scheme${currentScheme}`);
+                if (saved) data = JSON.parse(saved);
+            }
+            applySchemeData(data);
+        }
+
+        function applySchemeData(data) {
+            const total = tierConfig().cards;
+            // 先全部清空
+            for (let i = 1; i <= total; i++) {
+                if (!el(`title${i}`)) continue;
+                el(`title${i}`).value = '';
+                el(`content${i}`).value = '';
+                el(`item${i}`).style.backgroundColor = '';
+                const btn = el(`item${i}`).querySelector('.color-picker-btn');
+                if (btn) btn.style.backgroundColor = '#f0f0f0';
+                el(`item${i}`).querySelectorAll('.color-block').forEach(b => b.classList.remove('selected'));
+            }
+            el('summaryBox').value = '';
+            if (!data) return;
+            (data.inputs || []).forEach((item, idx) => {
+                const i = idx + 1;
+                if (!el(`title${i}`)) return;
+                el(`title${i}`).value = item.title || '';
+                el(`content${i}`).value = item.content || '';
+                const color = item.color || '#ffffff';
+                if (color !== '#ffffff') {
+                    el(`item${i}`).style.backgroundColor = color + '20';
+                    const btn = el(`item${i}`).querySelector('.color-picker-btn');
+                    if (btn) btn.style.backgroundColor = color;
+                    el(`item${i}`).querySelectorAll('.color-block').forEach(b => {
+                        if (b.dataset.color === color) b.classList.add('selected');
+                    });
+                }
+            });
+            el('summaryBox').value = data.summary || '';
+        }
+
+        async function clearCurrentScheme() {
+            if (!confirm(`确定要清空方案${currentScheme}的所有内容吗？`)) return;
+            applySchemeData(null);
+            localStorage.removeItem(`scheme${currentScheme}`);
+            if (currentUser) {
+                try {
+                    await supa.from('schemes')
+                        .delete()
+                        .eq('user_id', currentUser.id)
+                        .eq('scheme_number', currentScheme);
+                } catch (e) { console.warn('云端删除失败：', e); }
+            }
+            showToast(`方案${currentScheme}已清空`);
+        }
+
+        /* ========== 汇总 / 复制 / 清空 ========== */
+        function addToSummary(index) {
+            const title = el(`title${index}`).value.trim();
+            const content = el(`content${index}`).value.trim();
+            if (!content) { alert('请先填写内容！'); return; }
+            const includeTitle   = !el('titleToggle').classList.contains('off');
+            const includeNewline = !el('newlineToggle').classList.contains('off');
+            const sb = el('summaryBox');
+            const prefix = (includeTitle && title) ? `【${title}】` : '';
+            const nl = (sb.value && includeNewline) ? '\n' : '';
+            sb.value += nl + prefix + content;
+            sb.scrollTop = sb.scrollHeight;
+            flashBackground('blue');
+            saveCurrentScheme(false);
+        }
+
+        function copyToClipboard() {
+            const sb = el('summaryBox');
+            if (!sb.value) { alert('汇总框是空的，没有内容可复制！'); return; }
+            sb.select();
+            document.execCommand('copy');
+            flashBackground('green');
+        }
+
+        function clearSummary() {
+            el('summaryBox').value = '';
+            saveCurrentScheme(false);
+            flashBackground('red');
+        }
+
+        function toggleTitle() {
+            const t = el('titleToggle');
+            t.classList.toggle('off');
+            const isOn = !t.classList.contains('off');
+            localStorage.setItem('titleToggleState', isOn ? 'on' : 'off');
+            showToast(isOn ? '标题汇总：开启' : '标题汇总：关闭');
+        }
+
+        function toggleNewline() {
+            const t = el('newlineToggle');
+            t.classList.toggle('off');
+            const isOn = !t.classList.contains('off');
+            localStorage.setItem('newlineToggleState', isOn ? 'on' : 'off');
+            showToast(isOn ? '汇总时换行：开启' : '汇总时换行：关闭');
+        }
+
+        function flashBackground(color) {
+            const className = color === 'green' ? 'flash-green' : color === 'blue' ? 'flash-blue' : 'flash-red';
+            document.body.classList.add(className);
+            setTimeout(() => document.body.classList.remove(className), 300);
+        }
+
+        /* ========== 导入 / 导出 ========== */
+        function importScheme() { el('fileInput').click(); }
+
+        function exportScheme() {
+            const lines = [];
+            const total = tierConfig().cards;
+            for (let i = 1; i <= total; i++) {
+                if (!el(`title${i}`)) continue;
+                const t = el(`title${i}`).value.trim();
+                const c = el(`content${i}`).value.trim();
+                if (c) lines.push(t ? `【${t}】${c}` : c);
+            }
+            if (lines.length === 0) { alert('当前方案没有内容可导出！'); return; }
+            const date = new Date();
+            const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `方案${currentScheme}_${dateStr}.txt`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`已导出 ${lines.length} 条内容`);
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => parseAndFillContent(e.target.result);
+            reader.readAsText(file, 'UTF-8');
+            event.target.value = '';
+        }
+
+        function parseAndFillContent(content) {
+            const lines = content.split('\n').filter(l => l.trim() !== '');
+            const total = tierConfig().cards;
+            for (let i = 1; i <= total; i++) {
+                if (!el(`title${i}`)) continue;
+                el(`title${i}`).value = '';
+                el(`content${i}`).value = '';
+            }
+            lines.forEach((line, idx) => {
+                if (idx >= total) return;
+                const i = idx + 1;
+                const trimmed = line.trim();
+                const m = trimmed.match(/^【(.+?)】(.*)$/);
+                if (m) {
+                    el(`title${i}`).value = m[1].trim();
+                    el(`content${i}`).value = m[2].trim();
+                } else {
+                    el(`content${i}`).value = trimmed;
+                }
+            });
+            saveCurrentScheme(false);
+            const overflow = lines.length > total ? `（超出 ${lines.length - total} 条已忽略，升级后可容纳更多）` : '';
+            showToast(`已导入 ${Math.min(lines.length, total)} 行内容${overflow}`);
+        }
+
+        function showToast(msg) {
+            const t = el('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        /* ========== 预览 ========== */
+        function showPreview(index, event) {
+            const title = el(`title${index}`).value.trim();
+            const content = el(`content${index}`).value.trim();
+            if (!title && !content) return;
+            const box = el('previewBox');
+            const ttl = el('previewTitle');
+            const ctn = el('previewContent');
+            if (title) { ttl.textContent = `【${title}】`; ttl.style.display = 'block'; }
+            else { ttl.style.display = 'none'; }
+            if (content) { ctn.textContent = content; ctn.style.display = 'block'; }
+            else { ctn.style.display = 'none'; }
+            box.style.left = (event.clientX + 15) + 'px';
+            box.style.top  = (event.clientY + 15) + 'px';
+            box.classList.add('show');
+        }
+
+        function hidePreview() { el('previewBox').classList.remove('show'); }
+
+        /* ========== 认证：弹窗控制 ========== */
+        function openAuthModal(mode) {
+            authMode = mode || 'login';
+            switchAuthTab(authMode);
+            // 自动填上次登录用过的邮箱
+            const savedEmail = localStorage.getItem('lastEmail');
+            if (savedEmail && !el('authEmail').value) el('authEmail').value = savedEmail;
+            el('authModal').classList.add('show');
+            el('authError').textContent = '';
+            el('authError').style.color = '#ff3b30';
+            // 邮箱已填则把焦点放密码框
+            (el('authEmail').value ? el('authPassword') : el('authEmail')).focus();
+        }
+
+        function closeAuthModal() {
+            el('authModal').classList.remove('show');
+            el('authEmail').value = '';
+            el('authPassword').value = '';
+            el('authInviteCode').value = '';
+            el('authError').textContent = '';
+        }
+
+        function switchAuthTab(mode) {
+            authMode = mode;
+            el('loginTab').classList.toggle('active', mode === 'login');
+            el('registerTab').classList.toggle('active', mode === 'register');
+            el('authInviteCode').style.display = (mode === 'register') ? 'block' : 'none';
+            el('authSubmitBtn').textContent = (mode === 'register') ? '注册' : '登录';
+            el('authInfo').textContent = (mode === 'register')
+                ? '注册即开通免费小杯。填邀请码可直接升级中杯（128卡 / 3方案）。'
+                : '登录后可享受云同步、跨设备恢复方案。';
+        }
+
+        /* ========== 认证：登录 / 注册 ========== */
+        async function submitAuth() {
+            const email = el('authEmail').value.trim();
+            const password = el('authPassword').value;
+            const inviteCode = el('authInviteCode').value.trim();
+            const errBox = el('authError');
+            errBox.textContent = '';
+            if (!email || !password) { errBox.textContent = '邮箱和密码必填'; return; }
+            if (password.length < 6) { errBox.textContent = '密码至少 6 位'; return; }
+
+            const btn = el('authSubmitBtn');
+            btn.disabled = true;
+            const originalLabel = btn.textContent;
+            btn.textContent = '处理中…';
+
+            try {
+                if (authMode === 'register') {
+                    const { data, error } = await supa.auth.signUp({ email, password });
+                    if (error) throw error;
+                    // 暂存邀请码，等会话就绪后再用（应对邮箱确认开着的场景）
+                    if (inviteCode) localStorage.setItem('pendingInviteCode', inviteCode);
+                    localStorage.setItem('lastEmail', email);
+                    if (!data.session) {
+                        errBox.style.color = '#34c759';
+                        errBox.textContent = '注册成功！请去邮箱点击确认链接后再登录。邀请码已记住，登录后会自动尝试兑换。';
+                        return;
+                    }
+                    // 已直接登录，立即领取
+                    if (inviteCode) {
+                        const result = await applyInviteCode(inviteCode, data.user.id);
+                        localStorage.removeItem('pendingInviteCode');
+                        if (!result.ok) {
+                            errBox.style.color = '#ff8800';
+                            errBox.textContent = `注册成功，但邀请码${result.msg}（可在登录后用顶部"兑换邀请码"重试）`;
+                            await onAuthChanged(data.session);
+                            setTimeout(closeAuthModal, 2500);
+                            return;
+                        }
+                    }
+                    closeAuthModal();
+                    await onAuthChanged(data.session);
+                    showToast(inviteCode ? '注册成功，已升级中杯！' : '注册成功');
+                } else {
+                    const { data, error } = await supa.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    localStorage.setItem('lastEmail', email);
+                    closeAuthModal();
+                    await onAuthChanged(data.session);
+                    // 登录成功后，如果之前注册时填过邀请码但没生效，自动尝试一次
+                    const pending = localStorage.getItem('pendingInviteCode');
+                    if (pending && currentTier === 'free') {
+                        const result = await applyInviteCode(pending, data.user.id);
+                        localStorage.removeItem('pendingInviteCode');
+                        if (result.ok) {
+                            await onAuthChanged(data.session);
+                            showToast('登录成功，邀请码已自动兑换升级中杯！');
+                            return;
+                        }
+                    }
+                    showToast('登录成功');
+                }
+            } catch (e) {
+                errBox.style.color = '#ff3b30';
+                errBox.textContent = humanizeAuthError(e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
+        }
+
+        /* ========== 兑换邀请码（已登录用户） ========== */
+        function openRedeemModal() {
+            if (!currentUser) { openAuthModal('login'); return; }
+            el('redeemModal').classList.add('show');
+            el('redeemError').textContent = '';
+            el('redeemError').style.color = '#ff3b30';
+            // 自动填注册时未生效的待兑换码
+            const pending = localStorage.getItem('pendingInviteCode');
+            if (pending) el('redeemCodeInput').value = pending;
+            el('redeemCodeInput').focus();
+        }
+
+        function closeRedeemModal() {
+            el('redeemModal').classList.remove('show');
+            el('redeemCodeInput').value = '';
+            el('redeemError').textContent = '';
+        }
+
+        async function submitRedeem() {
+            const code = el('redeemCodeInput').value.trim();
+            const errBox = el('redeemError');
+            errBox.textContent = '';
+            if (!code) { errBox.textContent = '请填写邀请码'; return; }
+            if (!currentUser) { errBox.textContent = '请先登录'; return; }
+            const btn = el('redeemSubmitBtn');
+            btn.disabled = true;
+            const originalLabel = btn.textContent;
+            btn.textContent = '兑换中…';
+            try {
+                const result = await applyInviteCode(code, currentUser.id);
+                if (!result.ok) {
+                    errBox.textContent = `邀请码${result.msg}`;
+                    return;
+                }
+                localStorage.removeItem('pendingInviteCode');
+                closeRedeemModal();
+                // 重新拉 profile 刷新 UI
+                const { data: { session } } = await supa.auth.getSession();
+                await onAuthChanged(session);
+                showToast('兑换成功！已升级中杯');
+            } catch (e) {
+                errBox.textContent = '兑换异常：' + (e.message || e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
+        }
+
+        /* ========== 引导横幅 ========== */
+        function dismissIntro() {
+            el('introBanner').classList.add('hide');
+            document.body.classList.remove('has-intro');
+            localStorage.setItem('seenIntro', '1');
+        }
+        function maybeShowIntro() {
+            if (!localStorage.getItem('seenIntro')) {
+                el('introBanner').classList.remove('hide');
+                document.body.classList.add('has-intro');
+            }
+        }
+
+        function humanizeAuthError(e) {
+            const m = (e && e.message) || String(e);
+            if (m.includes('Invalid login')) return '邮箱或密码错误';
+            if (m.includes('already registered')) return '邮箱已注册，请直接登录';
+            if (m.includes('Password should be')) return '密码至少 6 位';
+            if (m.includes('Email not confirmed')) return '请先去邮箱完成验证';
+            return m;
+        }
+
+        async function applyInviteCode(code, userId) {
+            // 1) 查邀请码
+            const { data: invRows, error: e1 } = await supa
+                .from('invite_codes')
+                .select('code, grants_tier, used_by')
+                .eq('code', code)
+                .maybeSingle();
+            if (e1) return { ok: false, msg: '查询失败：' + e1.message };
+            if (!invRows) return { ok: false, msg: '不存在' };
+            if (invRows.used_by) return { ok: false, msg: '已被使用' };
+
+            // 2) 标记为已使用（带 used_by is null 的二次防护）
+            const { data: updated, error: e2 } = await supa
+                .from('invite_codes')
+                .update({ used_by: userId, used_at: new Date().toISOString() })
+                .eq('code', code)
+                .is('used_by', null)
+                .select();
+            if (e2) return { ok: false, msg: '领取失败：' + e2.message };
+            if (!updated || updated.length === 0) return { ok: false, msg: '已被使用' };
+
+            // 3) 升级 profile
+            const { error: e3 } = await supa
+                .from('profiles')
+                .update({ member_tier: invRows.grants_tier, invite_code_used: code })
+                .eq('id', userId);
+            if (e3) return { ok: false, msg: '升级失败：' + e3.message };
+            return { ok: true };
+        }
+
+        async function signOut() {
+            await supa.auth.signOut();
+            currentUser = null;
+            currentTier = 'free';
+            currentScheme = 1;
+            // 清掉本地缓存的方案，避免下一个用户在公用浏览器看到上一个用户的内容
+            for (let i = 1; i <= 100; i++) localStorage.removeItem(`scheme${i}`);
+            renderGrid();
+            renderSchemeTabs();
+            refreshTierBadge();
+            applySchemeData(null); // 显式清空 UI
+            showToast('已退出');
+        }
+
+        /* ========== 认证状态变化时统一刷新 ========== */
+        async function onAuthChanged(session) {
+            currentUser = session ? session.user : null;
+            currentTier = 'free';
+            if (currentUser) {
+                // 拉取 profile 拿层级
+                const { data: prof } = await supa
+                    .from('profiles').select('member_tier, member_expires_at')
+                    .eq('id', currentUser.id).maybeSingle();
+                if (prof) {
+                    if (prof.member_expires_at && new Date(prof.member_expires_at) < new Date()) {
+                        currentTier = 'free'; // 过期降级
+                    } else {
+                        currentTier = prof.member_tier || 'free';
+                    }
+                }
+            }
+            renderGrid();
+            renderSchemeTabs();
+            refreshTierBadge();
+            await loadScheme();
+        }
+
+        /* ========== 初始化 ========== */
+        async function init() {
+            initColorFilterPanel();
+            maybeShowIntro();
+
+            // 恢复开关状态
+            if (localStorage.getItem('titleToggleState') === 'off') el('titleToggle').classList.add('off');
+            if (localStorage.getItem('newlineToggleState') === 'off') el('newlineToggle').classList.add('off');
+
+            // 检查已有 session
+            const { data: { session } } = await supa.auth.getSession();
+            await onAuthChanged(session);
+
+            // 如果登录成功且有 pendingInviteCode（之前注册没兑换的），自动尝试兑换
+            if (session && currentTier === 'free') {
+                const pending = localStorage.getItem('pendingInviteCode');
+                if (pending) {
+                    const result = await applyInviteCode(pending, session.user.id);
+                    if (result.ok) {
+                        localStorage.removeItem('pendingInviteCode');
+                        await onAuthChanged(session);
+                        showToast('检测到未兑换的邀请码，已自动升级中杯！');
+                    }
+                }
+            }
+
+            // 监听 session 变化（自动刷新 token 等）
+            supa.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    onAuthChanged(session);
+                }
+            });
+
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                const authShown = el('authModal').classList.contains('show');
+                const redeemShown = el('redeemModal').classList.contains('show');
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !authShown && !redeemShown) copyToClipboard();
+                if (e.key === 'Escape') {
+                    if (authShown) closeAuthModal();
+                    if (redeemShown) closeRedeemModal();
+                }
+                if (e.key === 'Enter') {
+                    if (authShown) { e.preventDefault(); submitAuth(); }
+                    else if (redeemShown) { e.preventDefault(); submitRedeem(); }
+                }
+            });
+
+            // 离开页面前保存
+            window.addEventListener('beforeunload', () => {
+                try { saveCurrentScheme(false); } catch (e) {}
+            });
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
