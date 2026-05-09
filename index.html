@@ -789,38 +789,6 @@
     .import-btn-cancel { background: #f0f0f0; color: #333; }
     .import-btn-overwrite { background: #ff9500; color: white; }
 
-    /* 工具条（搜索+保存状态） */
-    .util-bar {
-        display: flex;
-        align-items: center;
-        padding: 6px 16px;
-        background: white;
-        border-bottom: 1px solid #eee;
-        gap: 12px;
-    }
-    .util-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-left: auto;
-    }
-    .card-search-input {
-        padding: 6px 12px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        font-size: 13px;
-        width: 200px;
-        outline: none;
-        font-family: inherit;
-        background: #f9f9f9;
-        transition: border-color 0.2s;
-    }
-    .card-search-input:focus { border-color: #007aff; background: white; }
-    .card-search-input::placeholder { color: #aaa; }
-    @media (max-width: 480px) {
-        .util-bar { padding: 5px 10px; gap: 8px; }
-        .card-search-input { width: 130px; font-size: 12px; padding: 5px 8px; }
-    }
     /* 探索图标按钮 */
     .nav-explore-icon {
         background: none;
@@ -835,26 +803,25 @@
     }
     .nav-explore-icon:hover { background: #f0f0f0; }
 
-    .save-status {
-        font-size: 12px;
-        color: #34c759;
-        cursor: pointer;
-        min-width: 60px;
-        text-align: center;
-        display: inline-block;
-    }
-    .save-status:hover { opacity: 0.7; }
 
-    .util-explore-link {
-        font-size: 13px;
-        color: #007aff;
-        text-decoration: none;
-        font-weight: 600;
-        padding: 4px 8px;
+
+
+    .card-search-input {
+        padding: 4px 10px;
+        border: 1px solid #e0e0e0;
         border-radius: 6px;
-        white-space: nowrap;
+        font-size: 13px;
+        width: 140px;
+        outline: none;
+        font-family: inherit;
+        background: #f9f9f9;
     }
-    .util-explore-link:hover { background: #007aff10; }
+    .card-search-input:focus { border-color: #007aff; background: white; width: 160px; }
+    .card-search-input::placeholder { color: #aaa; }
+    @media (max-width: 480px) {
+        .card-search-input { width: 80px; font-size: 12px; padding: 3px 8px; }
+        .card-search-input:focus { width: 100px; }
+    }
     </style>
 </head>
 <body>
@@ -865,21 +832,15 @@
             <span class="brand-state brand-state-2">贴糍粑</span>
             <span class="brand-state brand-state-3"><img src="monster.gif" alt="贴词吧" onerror="this.parentElement.style.display='none'"></span>
         </div>
+        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="🔍 搜索" oninput="filterCards()">
         <div class="auth-area" id="authArea">
-            <span class="tier-badge" id="tierBadge">试吃杯 · 32卡 / 1方案</span>
-            <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
-            <button id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
+            <a href="/explore.html" class="nav-explore-icon" title="探索糍粑摊">💡</a>
+            <span class="tier-badge" id="tierBadge">试吃杯</span>
+            <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️</button>
+            <button id="loginBtn" onclick="openAuthModal('login')">登录</button>
         </div>
     </div>
 
-    <!-- 工具条 -->
-    <div class="util-bar">
-        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="🔍 搜索卡片…" oninput="filterCards()">
-        <div class="util-right">
-            <a href="/explore.html" class="util-explore-link" title="探索糍粑摊">💡 探索</a>
-            <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
-        </div>
-    </div>
 
     <!-- 首次访问引导 -->
     <div class="intro-banner hide" id="introBanner">
@@ -1073,8 +1034,6 @@
                 el(`title${i}`).addEventListener('input', debouncedAutoSave);
                 el(`content${i}`).addEventListener('input', debouncedAutoSave);
             }
-            // 初始化保存状态
-            if (el('saveStatus')) { el('saveStatus').textContent = ''; }
 
             // 末尾追加升级 CTA（最高层级 ultra 不显示）
             if (currentTier !== 'ultra') {
@@ -1261,27 +1220,10 @@
 
         let saveDebounceTimer = null;
         function debouncedAutoSave() {
-            const status = el('saveStatus');
-            if (status) {
-                status.textContent = '🔄 保存中…';
-                status.style.color = '#888';
-            }
             clearTimeout(saveDebounceTimer);
             saveDebounceTimer = setTimeout(async () => {
                 await saveCurrentScheme(false);
-                if (el('saveStatus')) {
-                    el('saveStatus').textContent = '💾 已自动保存';
-                    el('saveStatus').style.color = '#34c759';
-                }
             }, 2000);
-        }
-
-        async function forceSave() {
-            clearTimeout(saveDebounceTimer);
-            const status = el('saveStatus');
-            if (status) { status.textContent = '🔄 保存中…'; status.style.color = '#888'; }
-            await saveCurrentScheme(true);
-            if (status) { status.textContent = '💾 已自动保存'; status.style.color = '#34c759'; }
         }
 
         async function saveCurrentScheme(showToastMessage = true) {
@@ -2025,6 +1967,11 @@
 
         /* ========== 初始化 ========== */
         async function init() {
+            // 先渲染卡片，再做事（保证页面不空白）
+            renderGrid();
+            renderSchemeTabs();
+            refreshTierBadge();
+            loadScheme();
             try {
             initColorFilterPanel();
             maybeShowIntro();
@@ -2074,14 +2021,7 @@
                 }
             }
 
-            // 渲染界面（即使有 pending import 弹窗也要先渲染底层）
-            if (!pendingImport) {
-                renderGrid();
-                renderSchemeTabs();
-                refreshTierBadge();
-                updateGraceBanner();
-                loadScheme();
-            }
+
 
 
         /* ========== 导入确认弹窗 ========== */
