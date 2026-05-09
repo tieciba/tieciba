@@ -743,6 +743,12 @@ async function init() {
     }
 
     if (!profile) {
+        // 用户资料不存在，尝试从公开方案中找
+        const { data: anyScheme } = await supa
+            .from('public_schemes')
+            .select('owner_id')
+            .limit(1);
+        // 无法确定用户时显示未找到
         renderNotFound(displayName);
         return;
     }

@@ -1474,6 +1474,14 @@
                             imageUrls.push(publicUrl.publicUrl);
                         }
                     }
+                    // 确保用户资料存在（为糍粑摊页面准备）
+                    const displayName = currentUser.email ? currentUser.email.split('@')[0] : '用户';
+                    await supa.from('user_profiles').upsert({
+                        id: currentUser.id,
+                        display_name: displayName,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'id', ignoreDuplicates: false });
+
                     const { error } = await supa.from('public_schemes').insert({
                         owner_id: currentUser.id,
                         title: title, description: desc,
