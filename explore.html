@@ -580,27 +580,25 @@
             }
         }
     .search-input {
-        margin-left: 12px;
         padding: 6px 12px;
         border: 1px solid #e0e0e0;
         border-radius: 6px;
         font-size: 13px;
-        width: 160px;
-        max-width: 120px;
+        width: 180px;
         outline: none;
         font-family: inherit;
         background: #f9f9f9;
         transition: border-color 0.2s, width 0.2s;
     }
-    .search-input:focus { border-color: #007aff; width: 180px; max-width: 140px; background: white; }
+    .search-input:focus { border-color: #007aff; width: 240px; background: white; }
     .search-input::placeholder { color: #aaa; }
     @media (max-width: 768px) {
-        .search-input { width: 100px; max-width: 90px; }
-        .search-input:focus { width: 120px; max-width: 110px; }
+        .search-input { width: 120px; }
+        .search-input:focus { width: 160px; }
     }
     @media (max-width: 480px) {
-        .search-input { width: 70px; max-width: 65px; font-size: 12px; margin-left: 4px; padding: 5px 8px; }
-        .search-input:focus { width: 100px; max-width: 90px; }
+        .search-input { width: 80px; font-size: 12px; padding: 5px 8px; }
+        .search-input:focus { width: 110px; }
     }
     </style>
 </head>
@@ -614,8 +612,8 @@
             <a href="/" class="nav-link">创作</a>
             <a href="/explore.html" class="nav-link active">探索</a>
         </div>
-        <input type="text" class="search-input" id="searchInput" placeholder="搜索方案…" oninput="onSearch()">
     </div>
+    <input type="text" class="search-input" id="searchInput" placeholder="搜索方案…" oninput="onSearch()">
     <div class="top-bar-right" id="authArea">
         <button class="btn-login" id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
     </div>
