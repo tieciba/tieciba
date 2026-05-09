@@ -842,6 +842,7 @@
             <span class="brand-state brand-state-3"><img src="monster.gif" alt="贴词吧" onerror="this.parentElement.style.display='none'"></span>
         </div>
         <input type="text" class="card-search-input" id="cardSearchInput" placeholder="搜索卡片…" oninput="filterCards()">
+        <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
         <div class="auth-area" id="authArea">
             <span class="tier-badge" id="tierBadge">试吃杯 · 32卡 / 1方案</span>
             <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
@@ -872,7 +873,6 @@
             <div class="scheme-controls">
                 <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
                 <button data-tip="清空当前方案的所有卡片内容" onclick="clearCurrentScheme()">🔄 <span class="lbl-full">重置方案</span><span class="lbl-short">重置</span></button>
-                <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
                 <button data-tip="生成分享链接，让其他人导入你的方案" onclick="shareCurrentScheme()">🔗 <span class="lbl-full">分享方案</span><span class="lbl-short">分享</span></button>
                 <button data-tip="把当前方案保存为 .txt 文件下载到本地" onclick="exportScheme()">📤 <span class="lbl-full">导出方案到本地</span><span class="lbl-short">导出</span></button>
                 <button data-tip="从本地 .txt 文件读取内容填充到卡片" onclick="importScheme()">📥 <span class="lbl-full">从本地导入方案</span><span class="lbl-short">导入</span></button>
