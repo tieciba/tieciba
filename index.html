@@ -2143,8 +2143,9 @@
                     showImportConfirmModal(imp);
                     return;
                 } catch (e) {
-                    console.warn('导入分享失败，清理残损数据：', e);
-                    localStorage.removeItem('pendingImport');
+                    console.error('导入分享弹窗失败：', e);
+                    showToast('导入失败，请刷新后重试');
+                    // 保留 pendingImport 以便重试，不清理
                 }
             }
 
@@ -2174,10 +2175,14 @@
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if (key.startsWith('imported_')) {
-                    const saved = JSON.parse(localStorage.getItem(key));
-                    if (saved && saved.source === imp.source) {
-                        existingIds.push(parseInt(key.replace('imported_', '')));
-                    }
+                    try {
+                        const raw = localStorage.getItem(key);
+                        if (!raw) continue;
+                        const saved = JSON.parse(raw);
+                        if (saved && String(saved.source) === String(imp.source)) {
+                            existingIds.push(parseInt(key.replace('imported_', '')));
+                        }
+                    } catch (e) { /* 跳过损坏的数据 */ }
                 }
             }
             // 构建预览
@@ -2197,17 +2202,18 @@
             warning.innerHTML = warningHtml;
             // 方案选择器：列出所有可用方案 + 临时方案
             const select = el('importSchemeSelect');
+            if (!select) { el('importConfirmModal').classList.add('show'); return; }
             let opts = '';
             const maxSchemes = cfg.schemes || 3;
             let hasEmpty = false;
             for (let i = 1; i <= maxSchemes; i++) {
                 const hasData = localStorage.getItem(`scheme${i}`);
-                const data = hasData ? JSON.parse(hasData) : null;
+                let data = null;
+                if (hasData) { try { data = JSON.parse(hasData); } catch (e) {} }
                 const filledCards = data?.inputs?.filter(c => c.title || c.content)?.length || 0;
                 const label = hasData && filledCards > 0
                     ? `方案${i}（已有 ${filledCards} 张卡片）`
                     : `方案${i}（空）`;
-                const disabled = hasData && filledCards > 0 ? '' : '';
                 opts += `<option value="${i}"${hasData && filledCards > 0 ? ' data-occupied="1"' : ''}>${label}</option>`;
                 if (!hasData || filledCards === 0) hasEmpty = true;
             }
@@ -2218,7 +2224,8 @@
             if (hasEmpty) {
                 for (let i = 1; i <= maxSchemes; i++) {
                     const hasData = localStorage.getItem(`scheme${i}`);
-                    const data = hasData ? JSON.parse(hasData) : null;
+                    let data = null;
+                    if (hasData) { try { data = JSON.parse(hasData); } catch (e) {} }
                     const filledCards = data?.inputs?.filter(c => c.title || c.content)?.length || 0;
                     if (!hasData || filledCards === 0) {
                         select.value = String(i);
@@ -2230,39 +2237,41 @@
             }
             el('importSchemeSelectWrap').style.display = 'block';
             // 操作按钮
-            const actions = el('importActions');
-            let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
-            if (existingIds.length > 0) {
-                btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
-            }
-            const selectedVal = el('importSchemeSelect').value;
-            btns += `<button class="import-btn-ok" onclick="confirmImport()">${selectedVal === 'temp' ? '导入为临时方案' : '导入到方案' + selectedVal}</button>`;
-            actions.innerHTML = btns;
+            updateImportActions(existingIds);
             el('importConfirmModal').classList.add('show');
         }
 
-        function onImportSchemeChange() {
-            const select = el('importSchemeSelect');
-            const val = select.value;
+        function updateImportActions(existingIds) {
             const actions = el('importActions');
-            const existingIds = []; // re-collect
-            if (pendingImportData) {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key.startsWith('imported_')) {
-                        const saved = JSON.parse(localStorage.getItem(key));
-                        if (saved && saved.source === pendingImportData.source) {
-                            existingIds.push(parseInt(key.replace('imported_', '')));
-                        }
-                    }
-                }
-            }
+            if (!actions) return;
+            const val = el('importSchemeSelect')?.value || '1';
             let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
-            if (existingIds.length > 0) {
+            if (existingIds && existingIds.length > 0) {
                 btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
             }
             btns += `<button class="import-btn-ok" onclick="confirmImport()">${val === 'temp' ? '导入为临时方案' : '导入到方案' + val}</button>`;
             actions.innerHTML = btns;
+        }
+
+        function onImportSchemeChange() {
+            // 重新收集 existingIds
+            const existingIds = [];
+            if (pendingImportData) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('imported_')) {
+                        try {
+                            const raw = localStorage.getItem(key);
+                            if (!raw) continue;
+                            const saved = JSON.parse(raw);
+                            if (saved && String(saved.source) === String(pendingImportData.source)) {
+                                existingIds.push(parseInt(key.replace('imported_', '')));
+                            }
+                        } catch (e) {}
+                    }
+                }
+            }
+            updateImportActions(existingIds);
         }
 
         function closeImportConfirm() {
