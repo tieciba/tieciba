@@ -733,7 +733,7 @@
             <span class="brand-state brand-state-3"><img src="monster.gif" alt="贴词吧" onerror="this.parentElement.style.display='none'"></span>
         </div>
         <div class="auth-area" id="authArea">
-            <span class="tier-badge" id="tierBadge">小杯 · 32卡 / 1方案</span>
+            <span class="tier-badge" id="tierBadge">试吃杯 · 32卡 / 1方案</span>
             <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
             <button id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
         </div>
@@ -811,7 +811,7 @@
             </div>
             <input type="email" id="authEmail" placeholder="邮箱" autocomplete="email">
             <input type="password" id="authPassword" placeholder="密码（至少 6 位）" autocomplete="current-password">
-            <input type="text" id="authInviteCode" placeholder="邀请码（可选，凭码升级中杯）" style="display:none">
+            <input type="text" id="authInviteCode" placeholder="邀请码（可选，凭码升中杯）" style="display:none">
             <button id="authSubmitBtn" onclick="submitAuth()">登录</button>
             <div class="auth-error" id="authError"></div>
             <div class="auth-info" id="authInfo">登录后可享受云同步、跨设备恢复方案。</div>
@@ -826,7 +826,7 @@
             <input type="text" id="redeemCodeInput" placeholder="例如 TC-XXXXXX" autocomplete="off">
             <button id="redeemSubmitBtn" onclick="submitRedeem()">立即兑换</button>
             <div class="auth-error" id="redeemError"></div>
-            <div class="auth-info">凭中杯邀请码可解锁 128 张卡片 / 3 套方案。每个邀请码只能用一次。</div>
+            <div class="auth-info">凭中杯邀请码可解锁 128 张卡片 / 10 套方案。每个邀请码只能用一次。</div>
         </div>
     </div>
 
@@ -838,10 +838,11 @@
 
         /* ========== 会员层级配置 ========== */
         const TIERS = {
-            free:  { name: '小杯',   cards: 32,  schemes: 1 },
-            basic: { name: '中杯',   cards: 128, schemes: 3 },
-            pro:   { name: '大杯',   cards: 256, schemes: 10 },
-            max:   { name: '超大杯', cards: 512, schemes: 100 }
+            free:  { name: '试吃杯', cards: 32,  schemes: 1 },
+            basic: { name: '小杯',   cards: 48,  schemes: 3 },
+            pro:   { name: '中杯',   cards: 128, schemes: 10 },
+            max:   { name: '大杯',   cards: 256, schemes: 20 },
+            ultra: { name: '超大杯', cards: 512, schemes: 100 }
         };
 
         const PRESET_COLORS = ['#FF4444', '#FF8800', '#FFDD00', '#88DD00', '#00DD88', '#00DDDD', '#0088DD', '#4444FF', '#8800FF', '#DD00DD', '#FF0088', '#FF6B9D', '#A0522D', '#708090', '#2F4F4F', '#FFE4B5', '#F0E68C', '#E6E6FA'];
@@ -888,21 +889,22 @@
                 el(`content${i}`).addEventListener('mouseleave', hidePreview);
             }
 
-            // 末尾追加升级 CTA（最高层级 max 不显示）
-            if (currentTier !== 'max') {
+            // 末尾追加升级 CTA（最高层级 ultra 不显示）
+            if (currentTier !== 'ultra') {
                 const cta = document.createElement('div');
                 cta.className = 'upgrade-cta';
-                const next = currentTier === 'free' ? '中杯' : currentTier === 'basic' ? '大杯' : '超大杯';
-                const nextCards = currentTier === 'free' ? 128 : currentTier === 'basic' ? 256 : 512;
+                const tiers = ['free','basic','pro','max'];
+                const nextIdx = tiers.indexOf(currentTier) + 1;
+                const next = TIERS[tiers[nextIdx]];
                 cta.innerHTML = `
                     <div class="upgrade-icon">⬆️</div>
-                    <div class="upgrade-title">升级到${next}</div>
-                    <div class="upgrade-desc">解锁 ${nextCards} 张卡片<br>${currentTier === 'free' ? '凭邀请码免费' : '点击查看价格'}</div>
+                    <div class="upgrade-title">升级到${next.name}</div>
+                    <div class="upgrade-desc">解锁 ${next.cards} 张卡片 / ${next.schemes} 方案<br>${currentTier === 'free' ? '登录即免费' : currentTier === 'basic' ? '凭邀请码免费' : '付费购买'}</div>
                 `;
                 cta.onclick = () => {
                     if (!currentUser) { openAuthModal('register'); return; }
-                    if (currentTier === 'free') { openRedeemModal(); return; }
-                    showToast('大杯/超大杯订阅功能即将上线，敬请期待');
+                    if (currentTier === 'basic') { openRedeemModal(); return; }
+                    showToast('大杯/超大杯付费功能即将上线，敬请期待');
                 };
                 grid.appendChild(cta);
             }
@@ -949,7 +951,7 @@
 
             // 兑换按钮：仅登录且未升级时显示
             const redeemBtn = el('redeemBtn');
-            redeemBtn.style.display = (currentUser && currentTier === 'free') ? '' : 'none';
+            redeemBtn.style.display = (currentUser && currentTier === 'basic') ? '' : 'none';
         }
 
         /* ========== 色块面板 ========== */
@@ -1304,7 +1306,7 @@
             el('authInviteCode').style.display = (mode === 'register') ? 'block' : 'none';
             el('authSubmitBtn').textContent = (mode === 'register') ? '注册' : '登录';
             el('authInfo').textContent = (mode === 'register')
-                ? '注册即开通免费小杯。填邀请码可直接升级中杯（128卡 / 3方案）。'
+                ? '注册即开通小杯（48卡/3方案）。填邀请码可直接升级中杯（128卡/10方案）。'
                 : '登录后可享受云同步、跨设备恢复方案。';
         }
 
@@ -1349,7 +1351,7 @@
                     }
                     closeAuthModal();
                     await onAuthChanged(data.session);
-                    showToast(inviteCode ? '注册成功，已升级中杯！' : '注册成功');
+                    showToast(inviteCode ? '注册成功，已升级中杯（128卡/10方案）！' : '注册成功');
                 } else {
                     const { data, error } = await supa.auth.signInWithPassword({ email, password });
                     if (error) throw error;
@@ -1363,7 +1365,7 @@
                         localStorage.removeItem('pendingInviteCode');
                         if (result.ok) {
                             await onAuthChanged(data.session);
-                            showToast('登录成功，邀请码已自动兑换升级中杯！');
+                            showToast('登录成功，邀请码已自动兑换升级中杯（128卡/10方案）！');
                             return;
                         }
                     }
@@ -1417,7 +1419,7 @@
                 // 重新拉 profile 刷新 UI
                 const { data: { session } } = await supa.auth.getSession();
                 await onAuthChanged(session);
-                showToast('兑换成功！已升级中杯');
+                showToast('兑换成功！已升级中杯（128卡/10方案）');
             } catch (e) {
                 errBox.textContent = '兑换异常：' + (e.message || e);
             } finally {
@@ -1525,10 +1527,12 @@
             if (e2) return { ok: false, msg: '领取失败：' + e2.message };
             if (!updated || updated.length === 0) return { ok: false, msg: '已被使用' };
 
-            // 3) 升级 profile
+            // 3) 升级 profile（合并旧版层级名称映射：basic→pro=中杯）
+            const legacyMap = { basic: 'pro' }; // 旧 basic 值对应新 pro=中杯
+            const tier = legacyMap[invRows.grants_tier] || invRows.grants_tier;
             const { error: e3 } = await supa
                 .from('profiles')
-                .update({ member_tier: invRows.grants_tier, invite_code_used: code })
+                .update({ member_tier: tier, invite_code_used: code })
                 .eq('id', userId);
             if (e3) return { ok: false, msg: '升级失败：' + e3.message };
             return { ok: true };
@@ -1553,15 +1557,18 @@
             currentUser = session ? session.user : null;
             currentTier = 'free';
             if (currentUser) {
+                currentTier = 'basic'; // 登录即小杯
                 // 拉取 profile 拿层级
                 const { data: prof } = await supa
                     .from('profiles').select('member_tier, member_expires_at')
                     .eq('id', currentUser.id).maybeSingle();
                 if (prof) {
                     if (prof.member_expires_at && new Date(prof.member_expires_at) < new Date()) {
-                        currentTier = 'free'; // 过期降级
+                        currentTier = 'basic'; // 过期降至小杯
                     } else {
-                        currentTier = prof.member_tier || 'free';
+                        let tier = prof.member_tier || 'basic';
+                        if (tier === 'free') tier = 'basic'; // 旧 free 账号迁移到小杯
+                        currentTier = tier;
                     }
                 }
             }
@@ -1587,14 +1594,14 @@
             await onAuthChanged(session);
 
             // 如果登录成功且有 pendingInviteCode（之前注册没兑换的），自动尝试兑换
-            if (session && currentTier === 'free') {
+            if (session && currentTier === 'basic') {
                 const pending = localStorage.getItem('pendingInviteCode');
                 if (pending) {
                     const result = await applyInviteCode(pending, session.user.id);
                     if (result.ok) {
                         localStorage.removeItem('pendingInviteCode');
                         await onAuthChanged(session);
-                        showToast('检测到未兑换的邀请码，已自动升级中杯！');
+                        showToast('检测到未兑换的邀请码，已自动升级中杯（128卡/10方案）！');
                     }
                 }
             }
