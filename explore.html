@@ -878,12 +878,34 @@ async function loadSchemes() {
     el('emptyState').style.display = 'none';
     el('cardGrid').innerHTML = '';
 
-    // 1. 查询 public_schemes
-    const { data: schemes, error: schemesError } = await supa
-        .from('public_schemes')
-        .select('id,owner_id,title,description,category,like_count,comment_count,created_at')
-        .order('created_at', { ascending: false })
-        .limit(500);
+    // 1. 查询 public_schemes（如果 category 列不存在则降级）
+    let schemesError = null;
+    let schemes = null;
+    
+    // 先尝试带 category 的查询
+    try {
+        const result = await supa
+            .from('public_schemes')
+            .select('id,owner_id,title,description,category,like_count,comment_count,created_at')
+            .order('created_at', { ascending: false })
+            .limit(500);
+        if (result.error) throw result.error;
+        schemes = result.data;
+    } catch (e) {
+        // category 列不存在，降级为不带 category 的查询
+        if (e.message && e.message.includes('category')) {
+            console.warn('category列不存在，降级查询');
+            const result = await supa
+                .from('public_schemes')
+                .select('id,owner_id,title,description,like_count,comment_count,created_at')
+                .order('created_at', { ascending: false })
+                .limit(500);
+            schemesError = result.error;
+            schemes = result.data;
+        } else {
+            schemesError = e;
+        }
+    }
 
     if (schemesError) {
         el('loadingState').style.display = 'none';

@@ -1510,14 +1510,27 @@
                         updated_at: new Date().toISOString()
                     }, { onConflict: 'id', ignoreDuplicates: false });
 
-                    const { error } = await supa.from('public_schemes').insert({
+                    const categoryVal = el('shareCategory').value || '其他提示词';
+                    const insertData = {
                         owner_id: currentUser.id,
                         title: title, description: desc,
-                        category: el('shareCategory').value || '其他提示词',
                         card_count: filledCards, scheme_data: data,
                         images: imageUrls
-                    });
-                    if (error) throw error;
+                    };
+                    // 先尝试带 category
+                    try {
+                        const { error } = await supa.from('public_schemes').insert({ ...insertData, category: categoryVal });
+                        if (error) throw error;
+                    } catch (catErr) {
+                        if (catErr.message && catErr.message.includes('category')) {
+                            // category 列不存在，降级为不带 category 的插入
+                            console.warn('category列不存在，降级插入');
+                            const { error } = await supa.from('public_schemes').insert(insertData);
+                            if (error) throw error;
+                        } else {
+                            throw catErr;
+                        }
+                    }
                     closeShareModal();
                     showToast('🌍 已发布到公开探索页！');
                 }
