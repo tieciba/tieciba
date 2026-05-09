@@ -793,11 +793,16 @@
     .util-bar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         padding: 6px 16px;
         background: white;
         border-bottom: 1px solid #eee;
         gap: 12px;
+    }
+    .util-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: auto;
     }
     .card-search-input {
         padding: 6px 12px;
@@ -869,9 +874,11 @@
 
     <!-- 工具条 -->
     <div class="util-bar">
-        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="搜索卡片…" oninput="filterCards()">
-        <a href="/explore.html" class="util-explore-link" title="探索糍粑摊">💡 探索</a>
-        <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
+        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="🔍 搜索卡片…" oninput="filterCards()">
+        <div class="util-right">
+            <a href="/explore.html" class="util-explore-link" title="探索糍粑摊">💡 探索</a>
+            <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
+        </div>
     </div>
 
     <!-- 首次访问引导 -->
