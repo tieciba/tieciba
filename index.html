@@ -990,11 +990,11 @@
             <div id="importWarning"></div>
             <div class="import-scheme-select" id="importSchemeSelectWrap">
                 <label>导入到：</label>
-                <select id="importSchemeSelect" onchange="onImportSchemeChange()"></select>
+                <select id="importSchemeSelect"></select>
             </div>
             <div class="import-actions" id="importActions">
-                <button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>
-                <button class="import-btn-ok" id="importBtnOk" onclick="confirmImport()">导入为新方案</button>
+                <button class="import-btn-cancel" data-action="cancel-import">取消</button>
+                <button class="import-btn-ok" id="importBtnOk" data-action="confirm-import">导入为新方案</button>
             </div>
         </div>
     </div>
@@ -2245,11 +2245,11 @@
             const actions = el('importActions');
             if (!actions) return;
             const val = el('importSchemeSelect')?.value || '1';
-            let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
+            let btns = '<button class="import-btn-cancel" data-action="cancel-import">取消</button>';
             if (existingIds && existingIds.length > 0) {
-                btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
+                btns += `<button class="import-btn-overwrite" data-action="confirm-import" data-overwrite="${existingIds[0]}">覆盖旧方案 #${existingIds[0]}</button>`;
             }
-            btns += `<button class="import-btn-ok" onclick="confirmImport()">${val === 'temp' ? '导入为临时方案' : '导入到该方案'}</button>`;
+            btns += `<button class="import-btn-ok" data-action="confirm-import">${val === 'temp' ? '导入为临时方案' : '导入到该方案'}</button>`;
             actions.innerHTML = btns;
         }
 
@@ -2341,6 +2341,20 @@
         window.confirmImport = confirmImport;
         window.closeImportConfirm = closeImportConfirm;
         window.onImportSchemeChange = onImportSchemeChange;
+
+        // 事件委托：导入弹窗所有按钮（静态+动态均生效，不依赖 onclick 属性）
+        document.getElementById('importConfirmModal').addEventListener('click', function(e) {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            if (action === 'cancel-import') {
+                closeImportConfirm();
+            } else if (action === 'confirm-import') {
+                const ow = btn.dataset.overwrite ? parseInt(btn.dataset.overwrite, 10) : undefined;
+                confirmImport(ow);
+            }
+        });
+        document.getElementById('importSchemeSelect').addEventListener('change', onImportSchemeChange);
 
         function escapeHtml(s) {
             const d = document.createElement('div');
