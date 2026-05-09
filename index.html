@@ -395,6 +395,21 @@
         /* 展开/收起按钮：桌面端隐藏，仅手机显示 */
         .btn-toggle-panel { display: none; background: #6c757d; color: white; }
         .btn-toggle-panel:hover { background: #5a6268; }
+
+        /* 方案下拉框 */
+        .scheme-select {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            font-weight: 500;
+            min-width: 110px;
+        }
+        .scheme-select:hover { border-color: #007aff; }
+        .scheme-select:focus { outline: none; border-color: #007aff; box-shadow: 0 0 0 2px rgba(0,122,255,0.15); }
         #summaryBox {
             width: 100%;
             height: 120px;
@@ -682,12 +697,21 @@
             }
             .summary-top-row { flex-direction: column; gap: 10px; }
             .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
+            /* 4 列等宽：复制 / 清空 / 方案下拉 / 展开 */
             .summary-controls {
                 display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-columns: repeat(4, 1fr);
                 gap: 8px 6px;
             }
-            .summary-controls button { padding: 9px 6px; font-size: 13px; white-space: nowrap; }
+            .summary-controls button { padding: 9px 4px; font-size: 12px; white-space: nowrap; }
+            .summary-controls .scheme-select {
+                width: 100%;
+                min-width: 0;
+                padding: 9px 4px;
+                font-size: 12px;
+                text-align: center;
+                text-align-last: center;
+            }
             .toggle-column {
                 grid-column: 1 / -1;
                 flex-direction: row;
@@ -742,7 +766,6 @@
     <!-- 固定在底部的汇总区域 -->
     <div class="summary-section collapsed">
         <div class="scheme-tabs">
-            <div class="scheme-tabs-list" id="schemeTabsList"></div>
             <div class="scheme-controls">
                 <button data-tip="把当前方案立刻同步到云端（已登录）和本地" onclick="saveCurrentScheme()">💾 <span class="lbl-full">保存当前方案</span><span class="lbl-short">保存</span></button>
                 <button data-tip="把当前方案保存为 .txt 文件下载到本地" onclick="exportScheme()">📤 <span class="lbl-full">导出方案到本地</span><span class="lbl-short">导出</span></button>
@@ -758,6 +781,7 @@
                 <div class="summary-controls">
                     <button class="btn-copy" data-tip="复制汇总框全部内容到剪贴板（快捷键 Ctrl/Cmd+Enter）" onclick="copyToClipboard()">📋 <span class="lbl-full">复制全部</span><span class="lbl-short">复制</span></button>
                     <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空汇总框</span><span class="lbl-short">清空汇总</span></button>
+                    <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
                     <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
                     <div class="toggle-column">
                         <div class="toggle-container">
@@ -892,19 +916,20 @@
             }
         }
 
-        /* ========== 渲染：方案 tabs ========== */
+        /* ========== 渲染：方案下拉 ========== */
         function renderSchemeTabs() {
-            const list = el('schemeTabsList');
-            list.innerHTML = '';
+            const sel = el('schemeSelect');
+            if (!sel) return;
             const total = tierConfig().schemes;
-            // 当前方案如果超过新层级上限，回到 1
+            // 当前方案超出层级上限时回到 1
             if (currentScheme > total) currentScheme = 1;
+            sel.innerHTML = '';
             for (let i = 1; i <= total; i++) {
-                const tab = document.createElement('div');
-                tab.className = 'scheme-tab' + (i === currentScheme ? ' active' : '');
-                tab.textContent = total <= 10 ? `方案${chineseNum(i)}` : `方案 ${i}`;
-                tab.onclick = () => switchScheme(i);
-                list.appendChild(tab);
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = total <= 10 ? `方案${chineseNum(i)}` : `方案 ${i}`;
+                if (i === currentScheme) opt.selected = true;
+                sel.appendChild(opt);
             }
         }
 
@@ -1006,9 +1031,13 @@
 
         /* ========== 方案切换 ========== */
         function switchScheme(n) {
+            n = parseInt(n, 10);
+            if (!n || n < 1) n = 1;
+            if (n === currentScheme) return;
             saveCurrentScheme(false);
             currentScheme = n;
-            renderSchemeTabs();
+            const sel = el('schemeSelect');
+            if (sel && sel.value !== String(n)) sel.value = String(n);
             loadScheme();
             showToast(`已切换到方案 ${n}`);
         }
