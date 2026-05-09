@@ -595,9 +595,9 @@
         }
         .top-bar .btn-redeem:hover { background: #ef6c00; color: white; }
 
-        /* 移动端适配 */
+        /* === 窄视口（侧屏分屏 + 手机都生效） === */
         @media (max-width: 720px) {
-            body { padding: 10px; padding-top: 60px; padding-bottom: 80px; }
+            body { padding: 12px; padding-top: 60px; padding-bottom: 280px; }
             body.has-intro { padding-top: 130px; }
             .top-bar { padding: 0 12px; height: 50px; }
             .top-bar .brand { width: 90px; height: 28px; }
@@ -607,16 +607,30 @@
             .tier-badge { font-size: 11px; padding: 3px 8px; }
             .tier-badge .tier-user-email { display: none; }
             .top-bar button { padding: 5px 10px; font-size: 12px; }
-            .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .container { padding: 12px; }
-            h1 { font-size: 17px; }
+            /* 短标签 */
+            .lbl-full { display: none; }
+            .lbl-short { display: inline; }
+            /* 紧凑按钮，避免分屏窄宽下溢出 */
+            .scheme-controls { gap: 6px; }
+            .scheme-controls button { padding: 6px 8px; font-size: 12px; }
+            .summary-section { padding: 12px 14px; }
+            .summary-section h2 { font-size: 14px; margin-bottom: 8px; }
+            .auth-modal-content { padding: 20px; width: 92%; }
+            .intro-banner { padding: 8px 12px; font-size: 12px; }
+        }
 
-            /* 手机端：汇总区固定底部，可折叠/展开 */
+        /* === 真·手机端（< 500px）：固定折叠底栏 + 2 列 === */
+        @media (max-width: 499px) {
+            body { padding: 10px; padding-top: 60px; padding-bottom: 120px; }
+
+            /* 2 列卡片 */
+            .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+            /* 汇总区固定底部、可折叠/展开 */
             .summary-section {
                 position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
+                bottom: 0; left: 0; right: 0;
                 box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
                 border-top: 1px solid #eee;
                 margin-top: 0;
@@ -628,7 +642,6 @@
                 transition: max-height 0.28s ease, padding 0.28s ease;
                 z-index: 1000;
             }
-            /* 折叠态：只露 1 行汇总框 + 3 个按钮 */
             .summary-section.collapsed {
                 max-height: 105px;
                 overflow: hidden;
@@ -648,18 +661,12 @@
                 padding: 6px 8px;
                 line-height: 1.4;
             }
-            /* 展开/收起按钮 仅手机显示 */
+            /* 展开/收起按钮：仅手机显示 */
             .btn-toggle-panel { display: inline-flex; align-items: center; justify-content: center; }
-            /* 给 body 留出折叠态高度 */
-            body { padding-bottom: 120px !important; }
 
-            /* 切换到短标签 */
-            .lbl-full { display: none; }
-            .lbl-short { display: inline; }
-
+            /* 方案 tabs 与控制按钮：上下结构、4 列等宽 */
             .scheme-tabs { flex-direction: column; align-items: stretch; gap: 10px; flex-wrap: nowrap; }
             .scheme-tabs-list { max-width: 100%; }
-            /* 4 个方案按钮等宽一行 */
             .scheme-controls {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
@@ -675,7 +682,6 @@
             }
             .summary-top-row { flex-direction: column; gap: 10px; }
             .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
-            /* 复制 / 清空 / 展开 等宽三列；开关下面一排 */
             .summary-controls {
                 display: grid;
                 grid-template-columns: 1fr 1fr 1fr;
@@ -690,15 +696,13 @@
             }
             .toggle-container { margin-left: 0; }
             #summaryBox { height: 80px; }
-            .auth-modal-content { padding: 20px; width: 92%; }
-            .intro-banner { padding: 8px 12px; font-size: 12px; }
 
-            /* 浮动跳转按钮已不需要——面板始终在底部 */
             .float-to-summary { display: none !important; }
         }
+
         /* 桌面端永远隐藏浮动跳转按钮 */
         .float-to-summary { display: none; }
-        /* 极窄屏（小于 320px 的设备/分屏）才退化为 1 列 */
+        /* 极窄屏（< 320px 设备 / 分屏）退化为 1 列 */
         @media (max-width: 319px) {
             .grid { grid-template-columns: 1fr; }
         }
