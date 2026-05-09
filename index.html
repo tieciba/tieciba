@@ -394,6 +394,12 @@
         .btn-copy:hover { background: #2da84a; }
         .btn-clear { background: #ff3b30; color: white; }
         .btn-clear:hover { background: #d62d22; }
+        /* 手动保存按钮：绿色=已保存，橙色=有未保存改动，蓝色=保存中 */
+        .btn-save { background: #34c759; color: white; transition: background 0.3s; }
+        .btn-save:hover { background: #2da84a; }
+        .btn-save.dirty { background: #ff9500; }
+        .btn-save.dirty:hover { background: #e68600; }
+        .btn-save.saving { background: #007aff; cursor: wait; pointer-events: none; }
         /* 展开/收起按钮：桌面端隐藏，仅手机显示 */
         .btn-toggle-panel { display: none; background: #6c757d; color: white; }
         .btn-toggle-panel:hover { background: #5a6268; }
@@ -730,10 +736,10 @@
             }
             .summary-top-row { flex-direction: column; gap: 10px; }
             .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
-            /* 3 列等宽：复制 / 清空 / 展开 */
+            /* 4 列等宽：复制 / 清空 / 保存 / 展开 */
             .summary-controls {
                 display: grid;
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(4, 1fr);
                 gap: 8px 6px;
             }
             .summary-controls button { padding: 9px 4px; font-size: 12px; white-space: nowrap; }
@@ -879,6 +885,7 @@
                 <div class="summary-controls">
                     <button class="btn-copy" data-tip="复制汇总框全部内容到剪贴板（快捷键 Ctrl/Cmd+Enter）" onclick="copyToClipboard()">📋 <span class="lbl-full">复制全部</span><span class="lbl-short">复制</span></button>
                     <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空</span><span class="lbl-short">清空</span></button>
+                    <button class="btn-save" id="btnSave" data-tip="手动保存当前方案到本地和云端" onclick="manualSave()">💾 <span class="lbl-full">保存</span><span class="lbl-short">保存</span></button>
                     <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
                     <div class="toggle-column">
                         <div class="toggle-container">
@@ -1259,6 +1266,8 @@
             if (n === currentScheme) return;
             saveCurrentScheme(false);
             currentScheme = n;
+            isDirty = false;
+            updateSaveBtn();
             localStorage.setItem('lastScheme', n);
             const sel = el('schemeSelect');
             if (sel && sel.value !== String(n)) sel.value = String(n);
@@ -1283,7 +1292,10 @@
 
         let saveDebounceTimer = null;
         let savePending = false;
+        let isDirty = false;
         function debouncedAutoSave() {
+            isDirty = true;
+            updateSaveBtn();
             savePending = true;
             clearTimeout(saveDebounceTimer);
             saveDebounceTimer = setTimeout(async () => {
@@ -1318,7 +1330,30 @@
                     console.warn('云同步失败（已本地保存）：', e);
                 }
             }
+            isDirty = false;
+            updateSaveBtn();
             if (showToastMessage) showToast(`方案${currentScheme} 已保存`);
+        }
+
+        async function manualSave() {
+            const btn = el('btnSave');
+            btn.classList.add('saving');
+            btn.disabled = true;
+            clearTimeout(saveDebounceTimer);
+            savePending = false;
+            await saveCurrentScheme(true);
+            btn.classList.remove('saving');
+            btn.disabled = false;
+        }
+
+        function updateSaveBtn() {
+            const btn = el('btnSave');
+            if (!btn) return;
+            if (isDirty) {
+                btn.classList.add('dirty');
+            } else {
+                btn.classList.remove('dirty');
+            }
         }
 
         /* ========== 分享弹窗 ========== */
