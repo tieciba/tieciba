@@ -1080,6 +1080,8 @@
                 // 自动保存
                 el(`title${i}`).addEventListener('input', debouncedAutoSave);
                 el(`content${i}`).addEventListener('input', debouncedAutoSave);
+                el(`title${i}`).addEventListener('blur', saveOnBlur);
+                el(`content${i}`).addEventListener('blur', saveOnBlur);
             }
 
             // 末尾追加升级 CTA（最高层级 ultra 不显示）
@@ -1266,11 +1268,23 @@
         }
 
         let saveDebounceTimer = null;
+        let savePending = false;
         function debouncedAutoSave() {
+            savePending = true;
             clearTimeout(saveDebounceTimer);
             saveDebounceTimer = setTimeout(async () => {
                 await saveCurrentScheme(false);
-            }, 2000);
+                savePending = false;
+            }, 500);
+        }
+
+        // 失焦立即保存（用户点其他地方时）
+        function saveOnBlur() {
+            if (savePending) {
+                clearTimeout(saveDebounceTimer);
+                saveCurrentScheme(false);
+                savePending = false;
+            }
         }
 
         async function saveCurrentScheme(showToastMessage = true) {
