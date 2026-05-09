@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贴词吧 · 糍粑摊</title>
+    <meta property="og:title" content="贴词吧 · 糍粑摊">
+    <meta property="og:description" content="AI 时代的提示词剪贴板">
+    <script src="supabase.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding-top: 60px;
+            padding-bottom: 60px;
+        }
+
+        /* ===== 顶部导航栏 ===== */
+        .top-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 52px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 999;
+        }
+        .top-bar .brand {
+            font-size: 16px;
+            font-weight: 600;
+            color: #007aff;
+            text-decoration: none;
+        }
+        .top-bar .nav-links {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .top-bar .nav-links a {
+            font-size: 13px;
+            color: #555;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .top-bar .nav-links a:hover { color: #007aff; }
+        .top-bar .nav-links .btn-login {
+            padding: 6px 14px;
+            border: 1px solid #007aff;
+            background: white;
+            color: #007aff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .top-bar .nav-links .btn-login:hover {
+            background: #007aff;
+            color: white;
+        }
+        .top-bar .user-badge {
+            font-size: 13px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .top-bar .user-badge img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* ===== 主容器 ===== */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ===== 用户信息区 ===== */
+        .profile-header {
+            background: white;
+            border-radius: 12px;
+            padding: 40px 36px;
+            margin-top: 24px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .profile-header .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 16px;
+            border: 3px solid #eee;
+            background: #e8f0fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #007aff;
+        }
+        .profile-header .avatar-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #007aff;
+            border: 3px solid #eee;
+        }
+        .profile-header .display-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        .profile-header .bio {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            max-width: 500px;
+            margin: 0 auto 16px;
+            min-height: 20px;
+        }
+        .profile-header .bio.empty {
+            color: #bbb;
+            font-style: italic;
+        }
+        .profile-header .meta-row {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .profile-header .meta-row span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .profile-header .points {
+            font-weight: 600;
+            color: #f5a623;
+        }
+
+        /* ===== 编辑按钮 ===== */
+        .btn-edit-profile {
+            display: inline-block;
+            padding: 8px 20px;
+            border: 1px solid #007aff;
+            background: white;
+            color: #007aff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-edit-profile:hover {
+            background: #007aff;
+            color: white;
+        }
+
+        /* ===== 统计数字 ===== */
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-item .stat-num {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+        }
+        .stat-item .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        /* ===== 方案列表区 ===== */
+        .schemes-section {
+            margin-top: 24px;
+        }
+        .schemes-section .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .schemes-section .section-title .count {
+            font-size: 14px;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .schemes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        @media (min-width: 900px) {
+            .schemes-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .schemes-grid {
+                grid-template-columns: 1fr;
+            }
+            .profile-header { padding: 28px 20px; }
+            .profile-header .display-name { font-size: 22px; }
+            .stats-row { gap: 20px; }
+        }
+
+        /* ===== 方案卡片 ===== */
+        .scheme-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+        .scheme-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .scheme-card .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .scheme-card .card-desc {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            flex: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .scheme-card .card-desc.empty {
+            color: #ccc;
+            font-style: italic;
+        }
+        .scheme-card .card-images {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border-radius: 6px;
+        }
+        .scheme-card .card-images img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        .scheme-card .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .scheme-card .card-tags span {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: white;
+        }
+        .scheme-card .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #aaa;
+            padding-top: 10px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .scheme-card .card-footer .stats {
+            display: flex;
+            gap: 12px;
+        }
+        .scheme-card .card-footer .stats span {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .scheme-card .card-footer .card-count {
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            color: #777;
+        }
+
+        /* ===== 状态区 ===== */
+        .loader {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+        }
+        .loader .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #007aff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .empty-state .text {
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #ff3b30;
+        }
+        .error-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .error-state .text { font-size: 15px; }
+
+        /* ===== 编辑弹窗 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            width: 400px;
+            max-width: 92%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .modal-box h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .modal-box label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .modal-box input,
+        .modal-box textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .modal-box input:focus,
+        .modal-box textarea:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 0 0 0 2px rgba(0,122,255,0.15);
+        }
+        .modal-box textarea {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
+        }
+        .modal-box .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-box .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            font-weight: 500;
+        }
+        .modal-box .btn-primary {
+            background: #007aff;
+            color: white;
+        }
+        .modal-box .btn-primary:hover { background: #0051d5; }
+        .modal-box .btn-primary:disabled { background: #999; cursor: wait; }
+        .modal-box .btn-cancel {
+            background: #f0f0f0;
+            color: #555;
+        }
+        .modal-box .btn-cancel:hover { background: #e0e0e0; }
+        .modal-box .modal-error {
+            color: #ff3b30;
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 18px;
+        }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: #34c759;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 3000;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        /* ===== 页脚 ===== */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        .footer a { color: #aaa; text-decoration: none; }
+        .footer a:hover { color: #007aff; }
+    </style>
+</head>
+<body>
+
+<!-- ===== 顶部导航栏 ===== -->
+<nav class="top-bar">
+    <a class="brand" href="/">🧋 贴词吧</a>
+    <div class="nav-links">
+        <a href="/explore.html">🔍 探索方案</a>
+        <span id="navUser"></span>
+    </div>
+</nav>
+
+<!-- ===== 内容区 ===== -->
+<div class="container" id="content">
+    <div class="loader"><div class="spinner"></div></div>
+</div>
+
+<!-- ===== 页脚 ===== -->
+<div class="footer">
+    © 2026 贴词吧 · <a href="/">返回首页</a>
+</div>
+
+<!-- ===== 编辑资料弹窗 ===== -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <h3>✏️ 编辑资料</h3>
+        <label>头像 URL</label>
+        <input type="text" id="editAvatar" placeholder="https://... (头像图片链接)">
+        <label>个人简介</label>
+        <textarea id="editBio" placeholder="介绍一下自己…" maxlength="200"></textarea>
+        <div class="btn-row">
+            <button class="btn btn-cancel" onclick="closeEditModal()">取消</button>
+            <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">保存</button>
+        </div>
+        <div class="modal-error" id="modalError"></div>
+    </div>
+</div>
+
+<!-- ===== Toast ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== Supabase 配置 ========== */
+const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbG...3cvc';
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ========== 全局状态 ========== */
+let currentUser = null;
+let profileUser = null;
+
+/* ========== 工具函数 ========== */
+function el(id) { return document.getElementById(id); }
+
+function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}年${m}月${day}日`;
+}
+
+function showToast(msg) {
+    const t = el('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+/* ========== 认证状态 ========== */
+async function checkAuth() {
+    const { data } = await supa.auth.getSession();
+    currentUser = data?.session?.user || null;
+    renderNavUser();
+}
+
+function renderNavUser() {
+    const container = el('navUser');
+    if (!currentUser) {
+        container.innerHTML = '<button class="btn-login" onclick="openLogin()">登录</button>';
+    } else {
+        container.innerHTML = `<span class="user-badge">👤 ${escapeHtml(currentUser.email)}</span>`;
+    }
+}
+
+function openLogin() {
+    window.location.href = '/?login=1';
+}
+
+/* ========== 主逻辑 ========== */
+async function init() {
+    await checkAuth();
+
+    const params = new URLSearchParams(window.location.search);
+    const displayName = params.get('user');
+
+    if (!displayName) {
+        renderError('未指定用户');
+        return;
+    }
+
+    // 1. 查找用户资料
+    const { data: profile, error: profileErr } = await supa
+        .from('user_profiles')
+        .select('*')
+        .eq('display_name', displayName)
+        .maybeSingle();
+
+    if (profileErr) {
+        console.error('查询用户失败:', profileErr);
+        renderError('查询用户时出错，请稍后再试');
+        return;
+    }
+
+    if (!profile) {
+        renderNotFound(displayName);
+        return;
+    }
+
+    profileUser = profile;
+    document.title = `贴词吧 · ${profile.display_name}`;
+
+    // 2. 查询用户积分
+    const { data: points } = await supa
+        .from('user_point_totals')
+        .select('total_points')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+    const totalPoints = points?.total_points || 0;
+
+    // 3. 查询该用户的公开方案
+    const { data: schemes, error: schemesErr } = await supa
+        .from('public_schemes')
+        .select('*')
+        .eq('owner_id', profile.id)
+        .order('created_at', { ascending: false });
+
+    if (schemesErr) {
+        console.error('查询方案失败:', schemesErr);
+        renderError('查询方案时出错，请稍后再试');
+        return;
+    }
+
+    // 计算统计数据
+    const schemeCount = schemes?.length || 0;
+    const totalLikes = schemes?.reduce((sum, s) => sum + (s.like_count || 0), 0) || 0;
+    const totalViews = schemes?.reduce((sum, s) => sum + (s.view_count || 0), 0) || 0;
+
+    // 检查是否为页面主人
+    const isOwner = currentUser && currentUser.id === profile.id;
+
+    // 渲染页面
+    renderPage(profile, totalPoints, schemes, schemeCount, totalLikes, totalViews, isOwner);
+}
+
+function renderPage(profile, totalPoints, schemes, schemeCount, totalLikes, totalViews, isOwner) {
+    const container = el('content');
+
+    const avatarHtml = profile.avatar_url
+        ? `<img class="avatar" src="${escapeHtml(profile.avatar_url)}" alt="${escapeHtml(profile.display_name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+        : '';
+
+    const avatarPlaceholder = `<div class="avatar-placeholder"${profile.avatar_url ? ' style="display:none"' : ''}>${escapeHtml(profile.display_name).charAt(0).toUpperCase()}</div>`;
+
+    const bioHtml = profile.bio
+        ? `<p class="bio">${escapeHtml(profile.bio)}</p>`
+        : `<p class="bio empty">这个人很懒，什么都没写…</p>`;
+
+    const editBtnHtml = isOwner
+        ? `<button class="btn-edit-profile" onclick="openEditModal()">✏️ 编辑资料</button>`
+        : '';
+
+    const schemesHtml = renderSchemes(schemes, schemeCount);
+
+    container.innerHTML = `
+        <!-- 用户信息 -->
+        <div class="profile-header">
+            ${avatarHtml}
+            ${avatarPlaceholder}
+            <h1 class="display-name">${escapeHtml(profile.display_name)}</h1>
+            ${bioHtml}
+            <div class="meta-row">
+                <span>🏆 <span class="points">积分: ${totalPoints}</span></span>
+                <span>📅 加入于 ${formatDate(profile.created_at)}</span>
+            </div>
+            ${editBtnHtml}
+
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-num">${schemeCount}</div>
+                    <div class="stat-label">📋 公开方案</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">${totalLikes}</div>
+                    <div class="stat-label">❤️ 总获赞</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">${totalViews}</div>
+                    <div class="stat-label">👁️ 总浏览</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方案列表 -->
+        <div class="schemes-section">
+            <div class="section-title">
+                📌 公开方案 <span class="count">(${schemeCount})</span>
+            </div>
+            ${schemesHtml}
+        </div>
+    `;
+}
+
+function renderSchemes(schemes, schemeCount) {
+    if (!schemes || schemes.length === 0) {
+        return `
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <div class="text">还没有公开方案<br>去贴词吧创建并分享你的第一个方案吧 ✨</div>
+            </div>
+        `;
+    }
+
+    const PRESET_COLORS = ['#FF4444', '#FF8800', '#FFDD00', '#88DD00', '#00DD88', '#00DDDD',
+        '#0088DD', '#4444FF', '#8800FF', '#DD00DD', '#FF0088', '#FF6B9D',
+        '#A0522D', '#708090', '#2F4F4F', '#FFE4B5', '#F0E68C', '#E6E6FA'];
+
+    function getColor(i) { return PRESET_COLORS[i % PRESET_COLORS.length]; }
+
+    function getCardPreview(scheme) {
+        // scheme_data 可能是 JSONB，提取前几个卡片的标题+颜色作为标签展示
+        let cards = scheme.scheme_data;
+        if (typeof cards === 'string') {
+            try { cards = JSON.parse(cards); } catch(e) { return ''; }
+        }
+        if (!Array.isArray(cards) || cards.length === 0) return '';
+
+        const preview = cards.slice(0, 6).map((c, i) => {
+            const color = c.color || getColor(i);
+            const title = c.title || '...';
+            return `<span style="background:${color}">${escapeHtml(title)}</span>`;
+        }).join('');
+
+        return `<div class="card-tags">${preview}</div>`;
+    }
+
+    function getImagesHtml(scheme) {
+        const images = scheme.images;
+        if (!images || !Array.isArray(images) || images.length === 0) return '';
+        const imgs = images.slice(0, 3).map(url =>
+            `<img src="${escapeHtml(url)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+        ).join('');
+        return `<div class="card-images">${imgs}</div>`;
+    }
+
+    return `<div class="schemes-grid">
+        ${schemes.map(s => `
+            <a class="scheme-card" href="/s.html?id=${s.id}">
+                <div class="card-title">${escapeHtml(s.title)}</div>
+                <div class="card-desc${s.description ? '' : ' empty'}">${s.description ? escapeHtml(s.description) : '暂无描述'}</div>
+                ${getCardPreview(s)}
+                ${getImagesHtml(s)}
+                <div class="card-footer">
+                    <div class="stats">
+                        <span>👁 ${s.view_count || 0}</span>
+                        <span>❤ ${s.like_count || 0}</span>
+                        <span>💬 ${s.comment_count || 0}</span>
+                        <span>⭐ ${s.favorite_count || 0}</span>
+                    </div>
+                    <span class="card-count">${s.card_count || 0} 卡</span>
+                </div>
+            </a>
+        `).join('')}
+    </div>`;
+}
+
+function renderNotFound(displayName) {
+    el('content').innerHTML = `
+        <div class="error-state">
+            <div class="icon">🔍</div>
+            <div class="text">用户「${escapeHtml(displayName)}」不存在</div>
+            <p style="margin-top:12px;font-size:13px;color:#aaa;">请检查用户名是否正确</p>
+        </div>
+    `;
+}
+
+function renderError(msg) {
+    el('content').innerHTML = `
+        <div class="error-state">
+            <div class="icon">😵</div>
+            <div class="text">${escapeHtml(msg)}</div>
+        </div>
+    `;
+}
+
+/* ========== 编辑资料 ========== */
+function openEditModal() {
+    if (!profileUser) return;
+    el('editAvatar').value = profileUser.avatar_url || '';
+    el('editBio').value = profileUser.bio || '';
+    el('modalError').textContent = '';
+    el('editModal').classList.add('show');
+}
+
+function closeEditModal() {
+    el('editModal').classList.remove('show');
+}
+
+async function saveProfile() {
+    const btn = el('saveProfileBtn');
+    const avatarUrl = el('editAvatar').value.trim();
+    const bio = el('editBio').value.trim();
+    const errBox = el('modalError');
+
+    btn.disabled = true;
+    btn.textContent = '保存中…';
+    errBox.textContent = '';
+
+    const { error } = await supa
+        .from('user_profiles')
+        .update({
+            avatar_url: avatarUrl,
+            bio: bio,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', profileUser.id);
+
+    if (error) {
+        errBox.textContent = '保存失败: ' + error.message;
+        btn.disabled = false;
+        btn.textContent = '保存';
+        return;
+    }
+
+    // 更新本地状态
+    profileUser.avatar_url = avatarUrl;
+    profileUser.bio = bio;
+
+    closeEditModal();
+    showToast('资料已更新 ✨');
+
+    // 重新渲染
+    const params = new URLSearchParams(window.location.search);
+    const displayName = params.get('user');
+    if (displayName) {
+        // 重新查询并渲染
+        const { data: profile } = await supa
+            .from('user_profiles')
+            .select('*')
+            .eq('display_name', displayName)
+            .maybeSingle();
+        if (profile) {
+            profileUser = profile;
+            // 重新查询积分
+            const { data: points } = await supa
+                .from('user_point_totals')
+                .select('total_points')
+                .eq('user_id', profile.id)
+                .maybeSingle();
+            const totalPoints = points?.total_points || 0;
+            // 重新查询方案
+            const { data: schemes } = await supa
+                .from('public_schemes')
+                .select('*')
+                .eq('owner_id', profile.id)
+                .order('created_at', { ascending: false });
+            const schemeCount = schemes?.length || 0;
+            const totalLikes = schemes?.reduce((sum, s) => sum + (s.like_count || 0), 0) || 0;
+            const totalViews = schemes?.reduce((sum, s) => sum + (s.view_count || 0), 0) || 0;
+            const isOwner = currentUser && currentUser.id === profile.id;
+            renderPage(profile, totalPoints, schemes, schemeCount, totalLikes, totalViews, isOwner);
+        }
+    }
+
+    btn.disabled = false;
+    btn.textContent = '保存';
+}
+
+// 点击遮罩关闭弹窗
+el('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
+/* ========== 启动 ========== */
+init();
+</script>
+</body>
+</html>

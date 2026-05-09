@@ -753,6 +753,44 @@
         @media (max-width: 319px) {
             .grid { grid-template-columns: 1fr; }
         }
+
+    /* 分享弹窗 */
+    .share-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; }
+    .share-modal.show { display: flex; }
+    .share-modal-content { background: white; border-radius: 12px; padding: 28px 24px; max-width: 440px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; }
+    .share-modal-content h3 { font-size: 18px; margin-bottom: 16px; }
+    .share-modal-content input, .share-modal-content textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 12px; font-family: inherit; }
+    .share-modal-content textarea { resize: vertical; min-height: 60px; }
+    .share-type-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .share-type-btn { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer; font-size: 14px; text-align: center; }
+    .share-type-btn.active { border-color: #007aff; background: #007aff10; color: #007aff; font-weight: 600; }
+    .share-public-fields { display: none; margin-bottom: 12px; }
+    .share-public-fields.show { display: block; }
+    .share-image-upload { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .share-image-slot { width: 64px; height: 64px; border: 2px dashed #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; }
+    .share-image-slot img { width: 100%; height: 100%; object-fit: cover; }
+    .share-image-slot .remove-img { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; background: #ff3b30; color: white; border-radius: 50%; font-size: 11px; line-height: 18px; text-align: center; cursor: pointer; display: none; }
+    .share-image-slot.filled .remove-img { display: block; }
+    .share-image-slot.filled { border-style: solid; border-color: #007aff; }
+    .share-buttons { display: flex; gap: 8px; }
+    .share-buttons button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .share-btn-submit { background: #007aff; color: white; }
+    .share-btn-cancel { background: #f0f0f0; color: #333; }
+    /* 导入确认弹窗 */
+    .import-confirm-content { max-width: 400px; }
+    .import-confirm-content .scheme-preview { margin-bottom: 16px; padding: 12px; background: #f9f9f9; border-radius: 8px; }
+    .import-confirm-content .scheme-preview strong { display: block; margin-bottom: 4px; }
+    .import-confirm-content .scheme-preview span { font-size: 13px; color: #666; }
+    .import-warning { padding: 10px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .import-dup-warning { padding: 10px 12px; background: #f0f7ff; border: 1px solid #007aff40; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .import-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .import-actions button { flex: 1; min-width: 80px; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .import-btn-ok { background: #007aff; color: white; }
+    .import-btn-cancel { background: #f0f0f0; color: #333; }
+    .import-btn-overwrite { background: #ff9500; color: white; }
+    .nav-explore { color: #007aff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: 6px; }
+    .nav-explore:hover { background: #007aff10; }
+
     </style>
 </head>
 <body>
@@ -766,6 +804,7 @@
         <div class="auth-area" id="authArea">
             <span class="tier-badge" id="tierBadge">试吃杯 · 32卡 / 1方案</span>
             <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
+            <a href="/explore.html" class="nav-explore">🔍 探索</a>
             <button id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
         </div>
     </div>
@@ -859,6 +898,45 @@
             <button id="redeemSubmitBtn" onclick="submitRedeem()">立即兑换</button>
             <div class="auth-error" id="redeemError"></div>
             <div class="auth-info">凭中杯邀请码可解锁 128 张卡片 / 10 套方案。每个邀请码只能用一次。</div>
+        </div>
+    </div>
+
+    <!-- 分享弹窗 -->
+    <div class="share-modal" id="shareModal">
+        <div class="share-modal-content">
+            <span class="modal-close" onclick="closeShareModal()">×</span>
+            <h3>🔗 分享方案</h3>
+            <div class="share-type-toggle">
+                <button class="share-type-btn active" id="shareTypePrivate" onclick="setShareType('private')">🔒 私有<br><small>仅链接访问</small></button>
+                <button class="share-type-btn" id="shareTypePublic" onclick="setShareType('public')">🌍 公开<br><small>出现在探索页</small></button>
+            </div>
+            <input type="text" id="shareTitle" placeholder="给方案取个名字" maxlength="100">
+            <textarea id="shareDesc" placeholder="方案描述（选填）" maxlength="500"></textarea>
+            <div class="share-public-fields" id="sharePublicFields">
+                <p style="font-size:12px;color:#888;margin-bottom:8px;">配图（最多5张，每张≤500KB）</p>
+                <div class="share-image-upload" id="shareImageSlots">
+                    <div class="share-image-slot" onclick="addShareImage(this)">+</div>
+                </div>
+                <input type="file" id="shareImageInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleShareImagePicked(event)">
+            </div>
+            <div class="share-buttons">
+                <button class="share-btn-cancel" onclick="closeShareModal()">取消</button>
+                <button class="share-btn-submit" id="shareSubmitBtn" onclick="submitShare()">生成分享链接</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入确认弹窗 -->
+    <div class="share-modal" id="importConfirmModal">
+        <div class="share-modal-content import-confirm-content">
+            <span class="modal-close" onclick="closeImportConfirm()">×</span>
+            <h3>📥 导入方案</h3>
+            <div class="scheme-preview" id="importPreview"></div>
+            <div id="importWarning"></div>
+            <div class="import-actions" id="importActions">
+                <button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>
+                <button class="import-btn-ok" id="importBtnOk" onclick="confirmImport()">导入为新方案</button>
+            </div>
         </div>
     </div>
 
@@ -1125,36 +1203,132 @@
             if (showToastMessage) showToast(`方案${currentScheme} 已保存`);
         }
 
-        /* ========== 分享方案 ========== */
-        async function shareCurrentScheme() {
+        /* ========== 分享弹窗 ========== */
+        let shareType = 'private';
+        let shareImages = []; // Array of {file, dataURL}
+
+        function openShareModal() {
             if (!currentUser) { showToast('请先登录后再分享'); openAuthModal('login'); return; }
-            // 先保存
-            await saveCurrentScheme(false);
+            saveCurrentScheme(false);
             const data = collectSchemeData();
-            const filledCards = data.inputs.filter(c => c.title || c.content).length;
+            const filledCards = (data.inputs || []).filter(c => c.title || c.content).length;
             if (filledCards === 0) { showToast('方案为空，请先添加内容'); return; }
-            // 生成短ID
-            const shortId = crypto.randomUUID().replace(/-/g,'').slice(0, 6);
-            const title = prompt('给方案取个名字：', '我的提示词方案');
-            if (!title) return;
-            const desc = prompt('方案描述（选填）：', '');
+            shareType = 'private';
+            shareImages = [];
+            el('shareTitle').value = '';
+            el('shareDesc').value = '';
+            setShareType('private');
+            refreshShareImageSlots();
+            el('shareModal').classList.add('show');
+        }
+
+        function setShareType(type) {
+            shareType = type;
+            el('shareTypePrivate').classList.toggle('active', type === 'private');
+            el('shareTypePublic').classList.toggle('active', type === 'public');
+            el('sharePublicFields').classList.toggle('show', type === 'public');
+            el('shareSubmitBtn').textContent = type === 'public' ? '公开发布到探索页' : '生成私有分享链接';
+        }
+
+        function closeShareModal() {
+            el('shareModal').classList.remove('show');
+        }
+
+        function addShareImage(slot) {
+            if (shareImages.length >= 5) { showToast('最多5张图片'); return; }
+            el('shareImageInput').click();
+        }
+
+        function handleShareImagePicked(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 500 * 1024) { showToast('图片不能超过500KB'); e.target.value = ''; return; }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                shareImages.push({ file: file, dataURL: ev.target.result });
+                refreshShareImageSlots();
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+
+        function removeShareImage(idx) {
+            shareImages.splice(idx, 1);
+            refreshShareImageSlots();
+        }
+
+        function refreshShareImageSlots() {
+            const container = el('shareImageSlots');
+            let html = '';
+            shareImages.forEach((img, i) => {
+                html += `<div class="share-image-slot filled"><img src="${img.dataURL}" alt=""><span class="remove-img" onclick="event.stopPropagation();removeShareImage(${i})">×</span></div>`;
+            });
+            if (shareImages.length < 5) {
+                html += '<div class="share-image-slot" onclick="addShareImage(this)">+</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        async function submitShare() {
+            const title = el('shareTitle').value.trim();
+            if (!title) { showToast('请输入方案名称'); return; }
+            const desc = el('shareDesc').value.trim();
+            const data = collectSchemeData();
+            const filledCards = (data.inputs || []).filter(c => c.title || c.content).length;
+            if (filledCards === 0) { showToast('方案为空'); return; }
+            const btn = el('shareSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = '发布中…';
+
             try {
-                const { error } = await supa.from('shared_schemes').insert({
-                    short_id: shortId,
-                    owner_id: currentUser.id,
-                    title: title,
-                    description: desc || '',
-                    card_count: filledCards,
-                    scheme_data: data,
-                    owner_email: currentUser.email || ''
-                });
-                if (error) throw error;
-                const link = `${window.location.origin}/s.html?id=${shortId}`;
-                await navigator.clipboard.writeText(link);
-                showToast('分享链接已复制！可发给任何人导入');
+                if (shareType === 'private') {
+                    // 私有分享：存 shared_schemes
+                    const shortId = crypto.randomUUID().replace(/-/g,'').slice(0, 6);
+                    const { error } = await supa.from('shared_schemes').insert({
+                        short_id: shortId, owner_id: currentUser.id,
+                        title: title, description: desc,
+                        card_count: filledCards, scheme_data: data,
+                        owner_email: currentUser.email || ''
+                    });
+                    if (error) throw error;
+                    const link = `${window.location.origin}/s.html?id=${shortId}`;
+                    await navigator.clipboard.writeText(link);
+                    closeShareModal();
+                    showToast('🔗 私有分享链接已复制！');
+                } else {
+                    // 公开分享：上传图片到 Supabase Storage + 存 public_schemes
+                    let imageUrls = [];
+                    for (const img of shareImages) {
+                        const fileName = `${currentUser.id}/${Date.now()}_${img.file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+                        const { error: uploadError } = await supa.storage
+                            .from('scheme-images').upload(fileName, img.file, {
+                                cacheControl: '3600', upsert: false
+                            });
+                        if (!uploadError) {
+                            const { data: publicUrl } = supa.storage.from('scheme-images').getPublicUrl(fileName);
+                            imageUrls.push(publicUrl.publicUrl);
+                        }
+                    }
+                    const { error } = await supa.from('public_schemes').insert({
+                        owner_id: currentUser.id,
+                        title: title, description: desc,
+                        card_count: filledCards, scheme_data: data,
+                        images: imageUrls
+                    });
+                    if (error) throw error;
+                    closeShareModal();
+                    showToast('🌍 已发布到公开探索页！');
+                }
             } catch (e) {
                 showToast('分享失败：' + (e.message || e));
             }
+            btn.disabled = false;
+            btn.textContent = shareType === 'public' ? '公开发布到探索页' : '生成私有分享链接';
+        }
+
+        /* ========== 分享方案（入口） ========== */
+        async function shareCurrentScheme() {
+            openShareModal();
         }
 
         async function loadScheme() {
@@ -1691,39 +1865,13 @@
             const { data: { session } } = await supa.auth.getSession();
             await onAuthChanged(session);
 
-            // 处理待导入的分享方案
+            // 处理待导入的分享方案 — 弹窗确认
             const pendingImport = localStorage.getItem('pendingImport');
             if (pendingImport) {
                 try {
                     const imp = JSON.parse(pendingImport);
-                    localStorage.removeItem('pendingImport');
-                    // 存为导入方案（方案号 900+）
-                    const impId = 900 + Date.now() % 100;
-                    localStorage.setItem(`imported_${impId}`, JSON.stringify({
-                        source: imp.source,
-                        title: imp.title,
-                        cardCount: imp.cardCount,
-                        importedAt: imp.importedAt,
-                        schemeData: imp.schemeData
-                    }));
-                    // 如果未超限直接加载
-                    const cfg = tierConfig();
-                    if (imp.cardCount <= cfg.cards) {
-                        currentScheme = impId;
-                        localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
-                        showToast(`已导入"${imp.title}"`);
-                    } else {
-                        // 超限，走宽限期
-                        localStorage.setItem(`grace_${impId}`, imp.importedAt);
-                        currentScheme = impId;
-                        localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
-                        showToast(`"${imp.title}"已导入（24h试用，超限卡片只读）`);
-                    }
-                    renderGrid();
-                    renderSchemeTabs();
-                    refreshTierBadge();
-                    applySchemeData(imp.schemeData);
-                    updateGraceBanner();
+                    // 不要 remove，等确认后再 remove
+                    showImportConfirmModal(imp);
                     return;
                 } catch (e) { console.warn('导入分享失败：', e); }
             }
@@ -1740,6 +1888,107 @@
                     }
                 }
             }
+
+
+        /* ========== 导入确认弹窗 ========== */
+        let pendingImportData = null;
+
+        function showImportConfirmModal(imp) {
+            pendingImportData = imp;
+            // 检查重复导入
+            const existingIds = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('imported_')) {
+                    const saved = JSON.parse(localStorage.getItem(key));
+                    if (saved && saved.source === imp.source) {
+                        existingIds.push(parseInt(key.replace('imported_', '')));
+                    }
+                }
+            }
+            // 构建预览
+            const preview = el('importPreview');
+            preview.innerHTML = `<strong>${escapeHtml(imp.title)}</strong>
+                <span>📋 ${imp.cardCount} 张卡片 · 来源：分享导入</span>`;
+            // 警告区
+            const warning = el('importWarning');
+            let warningHtml = '';
+            const cfg = tierConfig();
+            if (imp.cardCount > cfg.cards) {
+                warningHtml += `<div class="import-warning">⚠️ 导入方案有 <b>${imp.cardCount}</b> 张卡片，超出你的会员限额（<b>${cfg.cards}</b> 张）。<br>超出部分将进入 24 小时只读试用，过期后不可编辑。</div>`;
+            }
+            if (existingIds.length > 0) {
+                warningHtml += `<div class="import-dup-warning">📌 你已导入过此方案（方案 #${existingIds.join(', #')}）。要覆盖旧方案还是新建？</div>`;
+            }
+            warning.innerHTML = warningHtml;
+            // 操作按钮
+            const actions = el('importActions');
+            let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
+            if (existingIds.length > 0) {
+                btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
+            }
+            btns += `<button class="import-btn-ok" onclick="confirmImport()">导入为新方案</button>`;
+            actions.innerHTML = btns;
+            el('importConfirmModal').classList.add('show');
+        }
+
+        function closeImportConfirm() {
+            el('importConfirmModal').classList.remove('show');
+            // 用户取消导入，清理 pendingImport
+            localStorage.removeItem('pendingImport');
+            pendingImportData = null;
+            // 继续正常加载
+            if (currentScheme) loadScheme();
+        }
+
+        async function confirmImport(overwriteId) {
+            if (!pendingImportData) return;
+            const imp = pendingImportData;
+            localStorage.removeItem('pendingImport');
+            el('importConfirmModal').classList.remove('show');
+
+            // 如果是覆盖，删除旧方案数据
+            if (overwriteId) {
+                localStorage.removeItem(`scheme${overwriteId}`);
+                localStorage.removeItem(`imported_${overwriteId}`);
+                // 从 scheme tabs 移除
+                const savedSchemes = JSON.parse(localStorage.getItem('_extra_schemes') || '[]');
+                const filtered = savedSchemes.filter(s => s.id !== overwriteId);
+                localStorage.setItem('_extra_schemes', JSON.stringify(filtered));
+            }
+
+            // 存为导入方案（方案号 900+）
+            const impId = overwriteId || (900 + Date.now() % 100);
+            const cfg = tierConfig();
+            localStorage.setItem(`imported_${impId}`, JSON.stringify({
+                source: imp.source, title: imp.title,
+                cardCount: imp.cardCount, importedAt: imp.importedAt,
+                schemeData: imp.schemeData
+            }));
+            
+            if (imp.cardCount <= cfg.cards) {
+                currentScheme = impId;
+                localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
+                showToast(`✅ 已导入"${imp.title}"`);
+            } else {
+                localStorage.setItem(`grace_${impId}`, imp.importedAt);
+                currentScheme = impId;
+                localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
+                showToast(`✅ "${imp.title}"已导入（24h试用，超限卡片只读）`);
+            }
+            renderGrid();
+            renderSchemeTabs();
+            refreshTierBadge();
+            applySchemeData(imp.schemeData);
+            updateGraceBanner();
+            pendingImportData = null;
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s || '';
+            return d.innerHTML;
+        }
 
             // 监听 session 变化（自动刷新 token 等）
             supa.auth.onAuthStateChange((event, session) => {

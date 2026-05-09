@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贴词吧 · 方案详情</title>
+    <meta property="og:title" content="贴词吧 · 方案详情">
+    <meta property="og:description" content="AI 时代的提示词剪贴板 · 方案分享">
+    <script src="supabase.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        /* Loading */
+        .loading-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+        }
+        .loader {
+            width: 36px; height: 36px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #007aff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Container */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Top bar */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0 12px;
+            margin-bottom: 4px;
+        }
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            transition: background 0.2s;
+            color: #333;
+            text-decoration: none;
+        }
+        .back-btn:hover { background: #f0f0f0; }
+        .brand-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: #007aff;
+        }
+
+        /* Card base */
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        /* Author row */
+        .author-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .author-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e8f0fe;
+        }
+        .author-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .author-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .scheme-time {
+            font-size: 13px;
+            color: #999;
+        }
+
+        /* Title & Description */
+        .scheme-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a1a1a;
+            line-height: 1.3;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+        .scheme-desc {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Image Carousel */
+        .carousel-wrap {
+            position: relative;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #eee;
+            aspect-ratio: 16/10;
+            min-height: 200px;
+        }
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.35s cubic-bezier(0.25,0.8,0.25,1.2);
+        }
+        .carousel-slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #fafafa;
+        }
+        .carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            transition: all 0.2s;
+            z-index: 2;
+            color: #333;
+        }
+        .carousel-arrow:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+        .carousel-arrow:disabled { opacity: 0.3; cursor: default; }
+        .carousel-arrow.left { left: 10px; }
+        .carousel-arrow.right { right: 10px; }
+        .carousel-dots {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 2;
+        }
+        .carousel-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+        }
+        .carousel-dot.active {
+            background: white;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* Card chips */
+        .cards-section {
+            margin-bottom: 20px;
+        }
+        .cards-label {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .cards-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: default;
+            transition: transform 0.15s;
+            max-width: 100%;
+        }
+        .card-chip:hover { transform: scale(1.04); }
+        .card-chip-emoji { font-size: 16px; }
+        .card-chip-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            padding-top: 4px;
+        }
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 16px;
+            border-radius: 20px;
+            border: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+            transition: all 0.2s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .action-btn:hover { background: #eaeaea; }
+        .action-btn.active { background: #fff0f0; color: #ff3b30; }
+        .action-btn.fav-active { background: #fff8e1; color: #f5a623; }
+        .action-btn .icon { font-size: 16px; }
+        .action-btn .count { font-size: 13px; font-weight: 500; }
+
+        .action-btn.import-btn {
+            background: #007aff;
+            color: white;
+            font-weight: 600;
+            margin-left: auto;
+        }
+        .action-btn.import-btn:hover { background: #0051d5; }
+        .action-btn.import-btn:disabled { background: #999; cursor: wait; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        /* Comments */
+        .comments-section { margin-top: 0; }
+        .comments-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .comments-header .count-badge {
+            font-size: 13px;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        .comment-form .user-avatar-sm {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e8f0fe;
+            flex-shrink: 0;
+        }
+        .comment-input-wrap {
+            flex: 1;
+            position: relative;
+        }
+        .comment-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e5e5e5;
+            border-radius: 20px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+            line-height: 1.4;
+            background: #fafafa;
+        }
+        .comment-input:focus { border-color: #007aff; background: white; }
+        .comment-submit {
+            padding: 10px 20px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .comment-submit:hover { background: #0051d5; }
+        .comment-submit:disabled { background: #999; cursor: wait; }
+        .login-hint {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            padding: 16px 0;
+        }
+        .login-hint a {
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .comment-list { display: flex; flex-direction: column; gap: 0; }
+        .comment-item {
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            gap: 12px;
+        }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e8f0fe;
+            flex-shrink: 0;
+        }
+        .comment-body { flex: 1; min-width: 0; }
+        .comment-author {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .comment-text {
+            font-size: 14px;
+            color: #444;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .comment-time {
+            font-size: 12px;
+            color: #bbb;
+            margin-top: 6px;
+        }
+        .no-comments {
+            text-align: center;
+            color: #bbb;
+            font-size: 14px;
+            padding: 32px 0;
+        }
+        .comments-loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Error state */
+        .error-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #888;
+        }
+        .error-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .error-state .msg { font-size: 16px; margin-bottom: 20px; }
+        .error-state .back-link {
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        .footer a { color: #007aff; text-decoration: none; }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container { padding: 10px; }
+            .card { padding: 18px; border-radius: 10px; }
+            .scheme-title { font-size: 22px; }
+            .action-btn { padding: 8px 12px; font-size: 13px; }
+            .action-btn.import-btn { margin-left: 0; width: 100%; justify-content: center; margin-top: 6px; }
+            .action-bar { gap: 6px; }
+            .comment-form { flex-wrap: wrap; }
+            .comment-form .user-avatar-sm { display: none; }
+            .comment-submit { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading" class="loading-wrap"><div class="loader"></div></div>
+
+<!-- Error State -->
+<div id="errorState" style="display:none" class="error-state">
+    <div class="icon">😕</div>
+    <div class="msg" id="errorMsg">方案不存在或已被删除</div>
+    <a href="/" class="back-link">← 返回贴词吧</a>
+</div>
+
+<!-- Main Content -->
+<div id="main" style="display:none">
+    <div class="container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <a href="/" class="back-btn" title="返回">←</a>
+            <span class="brand-text">🧋 贴词吧</span>
+        </div>
+
+        <!-- Scheme Card -->
+        <div class="card" id="schemeCard">
+            <!-- Author Row -->
+            <div class="author-row">
+                <img class="author-avatar" id="authorAvatar" src="" alt="">
+                <div class="author-info">
+                    <span class="author-name" id="authorName">加载中…</span>
+                    <span class="scheme-time" id="schemeTime"></span>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <h1 class="scheme-title" id="schemeTitle"></h1>
+
+            <!-- Description -->
+            <div class="scheme-desc" id="schemeDesc"></div>
+
+            <!-- Image Carousel -->
+            <div class="carousel-wrap" id="carouselWrap" style="display:none">
+                <div class="carousel-track" id="carouselTrack"></div>
+                <button class="carousel-arrow left" id="carouselPrev" onclick="prevSlide()">‹</button>
+                <button class="carousel-arrow right" id="carouselNext" onclick="nextSlide()">›</button>
+                <div class="carousel-dots" id="carouselDots"></div>
+            </div>
+
+            <!-- Cards Preview -->
+            <div class="cards-section" id="cardsSection" style="display:none">
+                <div class="cards-label">📋 方案卡片 (<span id="cardsCount">0</span> 张)</div>
+                <div class="cards-grid" id="cardsGrid"></div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar" id="actionBar">
+                <button class="action-btn" id="likeBtn" onclick="toggleLike()" title="点赞">
+                    <span class="icon">🤍</span><span class="count" id="likeCount">0</span>
+                </button>
+                <button class="action-btn" id="favBtn" onclick="toggleFavorite()" title="收藏">
+                    <span class="icon">☆</span><span class="count" id="favCount">0</span>
+                </button>
+                <button class="action-btn" id="shareBtn" onclick="shareScheme()" title="分享">
+                    <span class="icon">🔗</span> 分享
+                </button>
+                <button class="action-btn import-btn" id="importBtn" onclick="doImport()">
+                    📥 导入到贴词吧
+                </button>
+            </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="card comments-section" id="commentsSection">
+            <div class="comments-header">
+                💬 评论 <span class="count-badge" id="commentCountBadge"></span>
+            </div>
+
+            <!-- Comment Form (logged-in users only) -->
+            <div id="commentFormWrap">
+                <div class="comment-form" id="commentForm" style="display:none">
+                    <img class="user-avatar-sm" id="myAvatar" src="" alt="">
+                    <div class="comment-input-wrap">
+                        <textarea class="comment-input" id="commentInput" rows="2" placeholder="写下你的评论…" maxlength="500"></textarea>
+                    </div>
+                    <button class="comment-submit" id="commentSubmitBtn" onclick="submitComment()">发布</button>
+                </div>
+                <div class="login-hint" id="loginHint" style="display:none">
+                    请<a href="/">登录</a>后发表评论
+                </div>
+            </div>
+
+            <!-- Comment List -->
+            <div class="comment-list" id="commentList"></div>
+            <div class="comments-loading" id="commentsLoading" style="display:none">
+                <div class="loader" style="margin:0 auto"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <a href="/">贴词吧</a> · 让提示词流动起来
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== Supabase 配置 ========== */
+const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbG...3cvc';
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ========== 全局状态 ========== */
+let currentScheme = null;
+let currentUser = null;
+let isLiked = false;
+let isFavorited = false;
+let currentSlide = 0;
+let totalSlides = 0;
+let toastTimer = null;
+
+/* ========== DOM 引用 ========== */
+const $ = (sel) => document.querySelector(sel);
+const loadingEl = $('#loading');
+const errorStateEl = $('#errorState');
+const errorMsgEl = $('#errorMsg');
+const mainEl = $('#main');
+
+/* ========== 工具函数 ========== */
+function escapeHtml(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function formatTime(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    const now = new Date();
+    const diff = now - d;
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 1) return '刚刚';
+    if (mins < 60) return `${mins} 分钟前`;
+    if (hours < 24) return `${hours} 小时前`;
+    if (days < 7) return `${days} 天前`;
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function showToast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ========== 图片轮播 ========== */
+function updateCarousel() {
+    const track = $('#carouselTrack');
+    track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+    // 更新箭头
+    $('#carouselPrev').disabled = currentSlide === 0;
+    $('#carouselNext').disabled = currentSlide >= totalSlides - 1;
+
+    // 更新指示点
+    document.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentSlide);
+    });
+}
+
+function nextSlide() {
+    if (currentSlide < totalSlides - 1) { currentSlide++; updateCarousel(); }
+}
+function prevSlide() {
+    if (currentSlide > 0) { currentSlide--; updateCarousel(); }
+}
+function goToSlide(idx) {
+    currentSlide = idx; updateCarousel();
+}
+
+function buildCarousel(images) {
+    if (!images || images.length === 0) {
+        $('#carouselWrap').style.display = 'none';
+        return;
+    }
+    totalSlides = Math.min(images.length, 5);
+    const wrap = $('#carouselWrap');
+    wrap.style.display = 'block';
+
+    const track = $('#carouselTrack');
+    track.innerHTML = images.slice(0, 5).map(url =>
+        `<div class="carousel-slide"><img src="${escapeHtml(url)}" alt="方案图片" loading="lazy"></div>`
+    ).join('');
+
+    const dots = $('#carouselDots');
+    dots.innerHTML = images.slice(0, 5).map((_, i) =>
+        `<button class="carousel-dot${i===0?' active':''}" onclick="goToSlide(${i})"></button>`
+    ).join('');
+
+    currentSlide = 0;
+    updateCarousel();
+}
+
+/* ========== 卡片预览 ========== */
+function buildCards(inputs) {
+    const section = $('#cardsSection');
+    const grid = $('#cardsGrid');
+    if (!inputs || inputs.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    $('#cardsCount').textContent = inputs.length;
+
+    grid.innerHTML = inputs.map(c => {
+        const color = c.color || '#888';
+        const title = c.title || '未命名';
+        // 提取 emoji / 首字符
+        const emoji = title.match(/^[\p{Emoji}]/u) ? title.charAt(0) : '';
+        const text = emoji ? title.slice(1).trim() : title;
+        return `<span class="card-chip" style="background:${color}" title="${escapeHtml(title)}">
+            ${emoji ? `<span class="card-chip-emoji">${emoji}</span>` : ''}
+            <span class="card-chip-text">${escapeHtml(text)}</span>
+        </span>`;
+    }).join('');
+}
+
+/* ========== 点赞/收藏 ========== */
+async function checkInteractionStatus() {
+    if (!currentUser || !currentScheme) return;
+    const uid = currentUser.id;
+    const sid = currentScheme.id;
+
+    const [likeRes, favRes] = await Promise.all([
+        supa.from('likes').select('id').eq('scheme_id', sid).eq('user_id', uid).maybeSingle(),
+        supa.from('favorites').select('id').eq('scheme_id', sid).eq('user_id', uid).maybeSingle()
+    ]);
+
+    isLiked = !!likeRes.data;
+    isFavorited = !!favRes.data;
+    updateActionButtons();
+}
+
+function updateActionButtons() {
+    const likeBtn = $('#likeBtn');
+    const favBtn = $('#favBtn');
+
+    if (isLiked) {
+        likeBtn.classList.add('active');
+        likeBtn.querySelector('.icon').textContent = '❤️';
+    } else {
+        likeBtn.classList.remove('active');
+        likeBtn.querySelector('.icon').textContent = '🤍';
+    }
+
+    if (isFavorited) {
+        favBtn.classList.add('fav-active');
+        favBtn.querySelector('.icon').textContent = '⭐';
+    } else {
+        favBtn.classList.remove('fav-active');
+        favBtn.querySelector('.icon').textContent = '☆';
+    }
+
+    $('#likeCount').textContent = currentScheme?.like_count || 0;
+    $('#favCount').textContent = currentScheme?.favorite_count || 0;
+}
+
+async function toggleLike() {
+    if (!currentUser) { showToast('请先登录'); return; }
+    const sid = currentScheme.id;
+    const uid = currentUser.id;
+
+    if (isLiked) {
+        // 取消点赞
+        await supa.from('likes').delete().eq('scheme_id', sid).eq('user_id', uid);
+        isLiked = false;
+        currentScheme.like_count = Math.max(0, (currentScheme.like_count || 1) - 1);
+    } else {
+        // 点赞
+        const { error } = await supa.from('likes').insert({ scheme_id: sid, user_id: uid });
+        if (error && error.code === '23505') {
+            // 已存在（可能并发），忽略
+        }
+        isLiked = true;
+        currentScheme.like_count = (currentScheme.like_count || 0) + 1;
+    }
+    updateActionButtons();
+
+    // 异步更新数据库计数
+    supa.from('public_schemes').update({ like_count: currentScheme.like_count }).eq('id', sid).then(() => {});
+}
+
+async function toggleFavorite() {
+    if (!currentUser) { showToast('请先登录'); return; }
+    const sid = currentScheme.id;
+    const uid = currentUser.id;
+
+    if (isFavorited) {
+        await supa.from('favorites').delete().eq('scheme_id', sid).eq('user_id', uid);
+        isFavorited = false;
+        currentScheme.favorite_count = Math.max(0, (currentScheme.favorite_count || 1) - 1);
+    } else {
+        const { error } = await supa.from('favorites').insert({ scheme_id: sid, user_id: uid });
+        if (error && error.code === '23505') { /* ignore */ }
+        isFavorited = true;
+        currentScheme.favorite_count = (currentScheme.favorite_count || 0) + 1;
+    }
+    updateActionButtons();
+
+    supa.from('public_schemes').update({ favorite_count: currentScheme.favorite_count }).eq('id', sid).then(() => {});
+}
+
+/* ========== 分享 ========== */
+function shareScheme() {
+    const url = window.location.href;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => showToast('链接已复制到剪贴板！'));
+    } else {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('链接已复制到剪贴板！');
+    }
+    // 异步更新分享计数
+    if (currentScheme) {
+        const sid = currentScheme.id;
+        supa.from('public_schemes').update({ share_count: (currentScheme.share_count || 0) + 1 }).eq('id', sid).then(() => {});
+    }
+}
+
+/* ========== 导入 ========== */
+async function doImport() {
+    const btn = $('#importBtn');
+    btn.disabled = true;
+    btn.textContent = '导入中…';
+
+    // 存到 localStorage，跳转到主页
+    const schemeData = currentScheme.scheme_data;
+    const inputs = (schemeData && typeof schemeData === 'object' && !Array.isArray(schemeData))
+        ? schemeData.inputs
+        : (Array.isArray(schemeData) ? schemeData : []);
+
+    localStorage.setItem('pendingImport', JSON.stringify({
+        source: currentScheme.id,
+        title: currentScheme.title,
+        cardCount: currentScheme.card_count,
+        schemeData: inputs,
+        importedAt: Date.now()
+    }));
+
+    window.location.href = '/';
+}
+
+/* ========== 评论 ========== */
+async function loadComments() {
+    const listEl = $('#commentList');
+    const loadingEl = $('#commentsLoading');
+    loadingEl.style.display = 'block';
+    listEl.innerHTML = '';
+
+    const sid = currentScheme.id;
+    // 先拉评论
+    const { data: commentsData, error } = await supa
+        .from('comments')
+        .select('id, content, created_at, user_id')
+        .eq('scheme_id', sid)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    loadingEl.style.display = 'none';
+
+    if (error || !commentsData || commentsData.length === 0) {
+        listEl.innerHTML = '<div class="no-comments">暂无评论，来说点什么吧 💬</div>';
+        $('#commentCountBadge').textContent = '(0)';
+        return;
+    }
+
+    // 批量拉取用户信息
+    const userIds = [...new Set(commentsData.map(c => c.user_id))];
+    const { data: profilesData } = await supa
+        .from('user_profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', userIds);
+    const profileMap = {};
+    if (profilesData) {
+        profilesData.forEach(p => { profileMap[p.id] = p; });
+    }
+
+    $('#commentCountBadge').textContent = `(${commentsData.length})`;
+
+    listEl.innerHTML = commentsData.map(c => {
+        const profile = profileMap[c.user_id];
+        const name = profile?.display_name || '匿名用户';
+        const avatar = profile?.avatar_url || '';
+        return `
+        <div class="comment-item">
+            <img class="comment-avatar" src="${escapeHtml(avatar)}" alt="" onerror="this.style.display='none'">
+            <div class="comment-body">
+                <div class="comment-author">${escapeHtml(name)}</div>
+                <div class="comment-text">${escapeHtml(c.content)}</div>
+                <div class="comment-time">${formatTime(c.created_at)}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function submitComment() {
+    if (!currentUser) { showToast('请先登录'); return; }
+
+    const input = $('#commentInput');
+    const content = input.value.trim();
+    if (!content) { showToast('请输入评论内容'); return; }
+
+    const btn = $('#commentSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '发布中…';
+
+    const { error } = await supa.from('comments').insert({
+        scheme_id: currentScheme.id,
+        user_id: currentUser.id,
+        content: content
+    });
+
+    if (error) {
+        showToast('评论失败，请重试');
+        btn.disabled = false;
+        btn.textContent = '发布';
+        return;
+    }
+
+    // 更新计数
+    const newCount = (currentScheme.comment_count || 0) + 1;
+    currentScheme.comment_count = newCount;
+    supa.from('public_schemes').update({ comment_count: newCount }).eq('id', currentScheme.id).then(() => {});
+
+    input.value = '';
+    btn.disabled = false;
+    btn.textContent = '发布';
+    showToast('评论发布成功！');
+    await loadComments();
+}
+
+/* ========== 初始化 ========== */
+async function init() {
+    // 获取 session
+    const { data: sessionData } = await supa.auth.getSession();
+    currentUser = sessionData?.session?.user || null;
+
+    // 获取 scheme id
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) {
+        showError('未提供方案 ID');
+        return;
+    }
+
+    // 拉取方案数据
+    const { data, error } = await supa
+        .from('public_schemes')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+    if (error || !data) {
+        showError('方案不存在或已被删除');
+        return;
+    }
+
+    currentScheme = data;
+
+    // 增加浏览次数（异步，不阻塞渲染）
+    supa.from('public_schemes')
+        .update({ view_count: (data.view_count || 0) + 1 })
+        .eq('id', id)
+        .then(() => {});
+    currentScheme.view_count = (data.view_count || 0) + 1;
+
+    // 隐藏 loading，显示 main
+    loadingEl.style.display = 'none';
+    mainEl.style.display = 'block';
+
+    // 更新 OG 标签
+    document.title = `贴词吧 · ${data.title}`;
+    try {
+        document.querySelector('meta[property="og:title"]').setAttribute('content', `贴词吧 · ${data.title}`);
+        document.querySelector('meta[property="og:description"]').setAttribute('content', `${data.card_count} 张卡片 · ${data.description?.slice(0, 80) || '方案分享'}`);
+    } catch(e) {}
+
+    // 渲染内容
+    renderScheme(data);
+
+    // 获取作者信息
+    if (data.owner_id) {
+        loadAuthorInfo(data.owner_id);
+    }
+
+    // 加载图片轮播
+    if (data.images && data.images.length > 0) {
+        buildCarousel(data.images);
+    }
+
+    // 加载卡片预览
+    const schemeData = data.scheme_data;
+    let inputs = [];
+    if (schemeData && typeof schemeData === 'object') {
+        inputs = Array.isArray(schemeData) ? schemeData : (schemeData.inputs || []);
+    }
+    if (inputs.length > 0) {
+        buildCards(inputs);
+    }
+
+    // 初始操作按钮状态
+    updateActionButtons();
+
+    // 评论区域
+    if (currentUser) {
+        $('#commentForm').style.display = 'flex';
+        $('#loginHint').style.display = 'none';
+        // 设置当前用户头像
+        const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.picture || '';
+        $('#myAvatar').src = avatar;
+    } else {
+        $('#commentForm').style.display = 'none';
+        $('#loginHint').style.display = 'block';
+    }
+
+    // 加载评论
+    loadComments();
+
+    // 检查点赞/收藏状态
+    if (currentUser) {
+        checkInteractionStatus();
+    }
+}
+
+function renderScheme(data) {
+    $('#schemeTitle').textContent = data.title || '未命名方案';
+    $('#schemeDesc').textContent = data.description || '';
+
+    // 时间
+    if (data.created_at) {
+        $('#schemeTime').textContent = formatDateTime(data.created_at);
+    }
+
+    // 作者默认展示
+    $('#authorName').textContent = '加载中…';
+    $('#authorAvatar').src = '';
+}
+
+async function loadAuthorInfo(ownerId) {
+    const { data } = await supa
+        .from('user_profiles')
+        .select('display_name, avatar_url')
+        .eq('id', ownerId)
+        .maybeSingle();
+
+    if (data) {
+        $('#authorName').textContent = data.display_name || '匿名用户';
+        if (data.avatar_url) {
+            $('#authorAvatar').src = data.avatar_url;
+        }
+    } else {
+        $('#authorName').textContent = '匿名用户';
+    }
+}
+
+function showError(msg) {
+    loadingEl.style.display = 'none';
+    errorStateEl.style.display = 'block';
+    errorMsgEl.textContent = msg;
+}
+
+/* ========== 键盘导航 ========== */
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') prevSlide();
+    if (e.key === 'ArrowRight') nextSlide();
+});
+
+init();
+</script>
+</body>
+</html>
