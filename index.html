@@ -2025,6 +2025,7 @@
 
         /* ========== 初始化 ========== */
         async function init() {
+            try {
             initColorFilterPanel();
             maybeShowIntro();
             startBrandRotation();
@@ -2054,7 +2055,10 @@
                     // 再弹确认窗
                     showImportConfirmModal(imp);
                     return;
-                } catch (e) { console.warn('导入分享失败：', e); }
+                } catch (e) {
+                    console.warn('导入分享失败，清理残损数据：', e);
+                    localStorage.removeItem('pendingImport');
+                }
             }
 
             // 如果登录成功且有 pendingInviteCode，自动尝试兑换
@@ -2206,6 +2210,11 @@
             window.addEventListener('beforeunload', () => {
                 try { saveCurrentScheme(false); } catch (e) {}
             });
+            } catch (e) {
+                console.error('初始化失败，尝试最小渲染：', e);
+                // 兜底：即使出错也渲染
+                try { renderGrid(); renderSchemeTabs(); } catch (_) {}
+            }
         }
 
         window.addEventListener('load', init);
