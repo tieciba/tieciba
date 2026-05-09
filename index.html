@@ -839,6 +839,17 @@
         display: inline-block;
     }
     .save-status:hover { opacity: 0.7; }
+
+    .util-explore-link {
+        font-size: 13px;
+        color: #007aff;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+    }
+    .util-explore-link:hover { background: #007aff10; }
     </style>
 </head>
 <body>
@@ -852,7 +863,6 @@
         <div class="auth-area" id="authArea">
             <span class="tier-badge" id="tierBadge">试吃杯 · 32卡 / 1方案</span>
             <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
-            <a href="/explore.html" class="nav-explore-icon" title="探索糍粑摊">🏪</a>
             <button id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
         </div>
     </div>
@@ -860,6 +870,7 @@
     <!-- 工具条 -->
     <div class="util-bar">
         <input type="text" class="card-search-input" id="cardSearchInput" placeholder="搜索卡片…" oninput="filterCards()">
+        <a href="/explore.html" class="util-explore-link" title="探索糍粑摊">💡 探索</a>
         <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
     </div>
 
@@ -2028,13 +2039,18 @@
             if (pendingImport) {
                 try {
                     const imp = JSON.parse(pendingImport);
-                    // 不要 remove，等确认后再 remove
+                    // 先渲染底层界面
+                    renderGrid();
+                    renderSchemeTabs();
+                    refreshTierBadge();
+                    updateGraceBanner();
+                    // 再弹确认窗
                     showImportConfirmModal(imp);
                     return;
                 } catch (e) { console.warn('导入分享失败：', e); }
             }
 
-            // 如果登录成功且有 pendingInviteCode（之前注册没兑换的），自动尝试兑换
+            // 如果登录成功且有 pendingInviteCode，自动尝试兑换
             if (session && currentTier === 'basic') {
                 const pending = localStorage.getItem('pendingInviteCode');
                 if (pending) {
@@ -2045,6 +2061,15 @@
                         showToast('检测到未兑换的邀请码，已自动升级中杯（128卡/10方案）！');
                     }
                 }
+            }
+
+            // 渲染界面（即使有 pending import 弹窗也要先渲染底层）
+            if (!pendingImport) {
+                renderGrid();
+                renderSchemeTabs();
+                refreshTierBadge();
+                updateGraceBanner();
+                loadScheme();
             }
 
 
