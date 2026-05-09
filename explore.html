@@ -283,6 +283,31 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.10);
         }
+        .scheme-card-thumb {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background: #f0f0f0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .scheme-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .scheme-card-img-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
         .scheme-card-title {
             font-size: 17px;
             font-weight: 700;
@@ -849,7 +874,20 @@ function renderFiltered() {
             avatarHTML = `<span class="author-mini-avatar-placeholder">${initial}</span>`;
         }
 
+        // Thumbnail: 取第一张配图，无图显示分类图标
+        const firstImg = (Array.isArray(scheme.images) && scheme.images.length > 0) ? scheme.images[0] : null;
+        const imgHTML = firstImg
+            ? `<img class="scheme-card-img" src="${escapeHtml(firstImg)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+            : '';
+        const iconFallback = firstImg
+            ? `<div class="scheme-card-img-fallback" style="display:none;background:${cat.bg};color:${cat.color};">${cat.icon}</div>`
+            : `<div class="scheme-card-img-fallback" style="background:${cat.bg};color:${cat.color};">${cat.icon}</div>`;
+
         card.innerHTML = `
+            <div class="scheme-card-thumb">
+                ${imgHTML}
+                ${iconFallback}
+            </div>
             <div class="scheme-card-title">${escapeHtml(scheme.title || '无标题方案')}</div>
             <div class="scheme-card-desc">${escapeHtml(scheme.description || '暂无描述')}</div>
             <div class="scheme-card-badge-row">
@@ -886,7 +924,7 @@ async function loadSchemes() {
     try {
         const result = await supa
             .from('public_schemes')
-            .select('id,owner_id,title,description,category,like_count,comment_count,created_at')
+            .select('id,owner_id,title,description,category,images,like_count,comment_count,created_at')
             .order('created_at', { ascending: false })
             .limit(500);
         if (result.error) throw result.error;
@@ -897,7 +935,7 @@ async function loadSchemes() {
             console.warn('category列不存在，降级查询');
             const result = await supa
                 .from('public_schemes')
-                .select('id,owner_id,title,description,like_count,comment_count,created_at')
+                .select('id,owner_id,title,description,images,like_count,comment_count,created_at')
                 .order('created_at', { ascending: false })
                 .limit(500);
             schemesError = result.error;
