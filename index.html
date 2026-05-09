@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>贴词吧 - 提示词汇总工具</title>
     <!-- 老浏览器兼容补丁（Chrome 81等） -->
     <script>!function(){try{[].at(-1)}catch(e){Array.prototype.at=function(n){return this[(n<0?this.length:n)+n]}};try{structuredClone(1)}catch(e){window.structuredClone=function(o){return JSON.parse(JSON.stringify(o))}};try{({}).hasOwn?0:Object.defineProperty(Object.prototype,'hasOwn',{value:function(k){return Object.prototype.hasOwnProperty.call(this,k)},configurable:!0,writable:!0})}catch(e){};try{'a'.replaceAll('a','b')}catch(e){String.prototype.replaceAll=function(s,r){return this.split(s).join(r)}};try{Promise.allSettled([])}catch(e){Promise.allSettled=function(ps){return Promise.all(ps.map(p=>Promise.resolve(p).then(v=>({status:'fulfilled',value:v}),r=>({status:'rejected',reason:r}))))}}}();</script>
@@ -2401,6 +2404,30 @@
         }
 
         window.addEventListener('load', init);
+    </script>
+    <script>
+        // 🔒 安全兜底：确保导入弹窗事件始终绑定（绕过 CDN 缓存问题）
+        // 版本: 2026-05-10-v2
+        console.log('[贴词吧] 弹窗安全绑定 v2 已加载');
+        (function rebindModal() {
+            var modal = document.getElementById('importConfirmModal');
+            if (!modal) return;
+            modal.addEventListener('click', function(e) {
+                var el = e.target.closest('[data-action]');
+                if (!el) return;
+                var action = el.dataset.action;
+                if (action === 'cancel-import' && typeof closeImportConfirm === 'function') {
+                    closeImportConfirm();
+                } else if (action === 'confirm-import' && typeof confirmImport === 'function') {
+                    var ow = el.dataset.overwrite ? parseInt(el.dataset.overwrite, 10) : undefined;
+                    confirmImport(ow);
+                }
+            }, false);
+            var sel = document.getElementById('importSchemeSelect');
+            if (sel && typeof onImportSchemeChange === 'function') {
+                sel.addEventListener('change', onImportSchemeChange);
+            }
+        })();
     </script>
 </body>
 </html>
