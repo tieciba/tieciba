@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>探索 · 贴词吧</title>
-    <meta name="description" content="贴词吧公开分享广场 — 发现大家分享的提示词方案">
+    <title>糍粑摊广场 · 贴词吧</title>
+    <meta name="description" content="贴词吧糍粑摊广场 — 发现各位摊主的提示词方案">
     <script src="supabase.min.js"></script>
     <style>
         * {
@@ -66,6 +66,23 @@
         .nav-link.active {
             color: #007aff;
             font-weight: 600;
+            background: #e8f4ff;
+        }
+        /* 探索图标按钮 */
+        .nav-explore-icon {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #666;
+            transition: background 0.2s;
+        }
+        .nav-explore-icon:hover { background: #f0f0f0; }
+        .nav-explore-icon.active {
+            color: #007aff;
             background: #e8f4ff;
         }
         .top-bar-right {
@@ -174,7 +191,8 @@
             .card-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
-        .scheme-card {
+        /* ========== 用户卡片（糍粑摊主） ========== */
+        .user-card {
             background: white;
             border-radius: 12px;
             overflow: hidden;
@@ -183,88 +201,77 @@
             transition: transform 0.2s, box-shadow 0.2s;
             max-width: 100%;
             min-width: 0;
+            padding: 24px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
-        .scheme-card:hover {
+        .user-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.10);
         }
-        .card-thumbnail {
-            width: 100%;
-            height: 180px;
+        .user-card-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
             object-fit: cover;
-            background: #f0f0f0;
+            border: 3px solid #e8f4ff;
+            margin-bottom: 12px;
+            flex-shrink: 0;
         }
-        .card-thumbnail-placeholder {
-            width: 100%;
-            height: 180px;
-            background: linear-gradient(135deg, #e8f4ff 0%, #d0e8ff 100%);
+        .user-card-avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #007aff, #5856d6);
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
-            color: #007aff;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            flex-shrink: 0;
         }
-        .card-body {
-            padding: 14px 16px;
-        }
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
+        .user-card-name {
+            font-size: 17px;
+            font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .user-card-bio {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 14px;
             line-height: 1.4;
+            max-width: 100%;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             word-break: break-word;
+            min-height: 18px;
         }
-        .card-author {
+        .user-card-stats {
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-        .card-author-avatar {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #e0e0e0;
-            flex-shrink: 0;
-        }
-        .card-author-name {
+            gap: 20px;
             font-size: 13px;
-            color: #888;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            min-width: 0;
+            color: #666;
         }
-        .card-stats {
+        .user-card-stat {
             display: flex;
             align-items: center;
-            gap: 14px;
-            font-size: 12px;
-            color: #aaa;
+            gap: 4px;
         }
-        .card-stat {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-        .card-stat-icon {
-            font-size: 13px;
-        }
-        .card-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 8px;
-        }
-        .card-time {
-            font-size: 12px;
-            color: #bbb;
+        .user-card-stat-icon {
+            font-size: 15px;
         }
 
         /* ========== 加载 / 空状态 ========== */
@@ -440,7 +447,6 @@
             .nav-links { gap: 2px; }
             .nav-link { padding: 6px 12px; font-size: 13px; }
             .main-container { padding: 14px; }
-            .card-thumbnail, .card-thumbnail-placeholder { height: 170px; }
             .sort-tab { padding: 8px 16px; }
             .auth-modal-content { padding: 28px 20px; }
         }
@@ -498,26 +504,31 @@
                 font-size: 12px;
             }
 
-            /* 卡片 */
+            /* 用户卡片 */
             .card-grid {
                 gap: 10px;
             }
-            .card-thumbnail, .card-thumbnail-placeholder {
-                height: 140px;
+            .user-card {
+                padding: 18px 14px 16px;
             }
-            .card-body {
-                padding: 10px 12px;
+            .user-card-avatar, .user-card-avatar-placeholder {
+                width: 64px;
+                height: 64px;
+                margin-bottom: 10px;
             }
-            .card-title {
-                font-size: 14px;
-                margin-bottom: 6px;
+            .user-card-avatar-placeholder {
+                font-size: 26px;
             }
-            .card-stats {
-                gap: 10px;
-                flex-wrap: wrap;
+            .user-card-name {
+                font-size: 15px;
             }
-            .card-footer {
-                margin-top: 6px;
+            .user-card-bio {
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+            .user-card-stats {
+                font-size: 12px;
+                gap: 14px;
             }
 
             /* 登录后的用户区 */
@@ -610,11 +621,11 @@
         <a href="/" class="brand">🧋 贴词吧</a>
         <div class="nav-links">
             <a href="/" class="nav-link">创作</a>
-            <a href="/explore.html" class="nav-link active">探索</a>
         </div>
     </div>
-    <input type="text" class="search-input" id="searchInput" placeholder="搜索方案…" oninput="onSearch()">
+    <input type="text" class="search-input" id="searchInput" placeholder="搜索摊主…" oninput="onSearch()">
     <div class="top-bar-right" id="authArea">
+        <a href="/explore.html" class="nav-explore-icon active" title="糍粑摊广场">🏪</a>
         <button class="btn-login" id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
     </div>
 </div>
@@ -624,10 +635,10 @@
     <!-- 排序开关 -->
     <div class="sort-bar">
         <div class="sort-tabs">
-            <button class="sort-tab active" id="sortNewest" onclick="switchSort('newest')">🕐 最新</button>
-            <button class="sort-tab" id="sortHottest" onclick="switchSort('hottest')">🔥 最热</button>
+            <button class="sort-tab active" id="sortMostSchemes" onclick="switchSort('mostSchemes')">📋 方案最多</button>
+            <button class="sort-tab" id="sortMostLiked" onclick="switchSort('mostLiked')">❤️ 最受欢迎</button>
         </div>
-        <span class="scheme-count" id="schemeCount"></span>
+        <span class="scheme-count" id="userCount"></span>
     </div>
 
     <!-- 卡片网格 -->
@@ -636,14 +647,14 @@
     <!-- 加载状态 -->
     <div class="loading-state" id="loadingState">
         <div class="spinner"></div>
-        <div class="loading-text">探索中…</div>
+        <div class="loading-text">逛摊中…</div>
     </div>
 
     <!-- 空状态 -->
     <div class="empty-state" id="emptyState" style="display:none;">
-        <div class="empty-icon">📭</div>
-        <div class="empty-title">还没有公开方案</div>
-        <div class="empty-desc">去贴词吧创作一个方案并公开分享吧～</div>
+        <div class="empty-icon">🏕️</div>
+        <div class="empty-title">还没有糍粑摊</div>
+        <div class="empty-desc">去贴词吧创作一个方案并公开分享，成为第一位摊主吧～</div>
     </div>
 </div>
 
@@ -676,7 +687,7 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== 全局状态 ========== */
 let currentUser = null;
-let currentSort = 'newest'; // 'newest' | 'hottest'
+let currentSort = 'mostSchemes'; // 'mostSchemes' | 'mostLiked'
 let authMode = 'login'; // 'login' | 'register'
 
 /* ========== 工具函数 ========== */
@@ -702,89 +713,63 @@ function friendlyTime(isoString) {
     return `${years}年前`;
 }
 
-/* ========== 渲染卡片 ========== */
-let allSchemes = [];
+/* ========== 搜索与渲染 ========== */
+let allUsers = [];
 
 function onSearch() {
     const q = (el('searchInput').value || '').toLowerCase().trim();
-    if (!q) { renderCards(allSchemes); return; }
-    const filtered = allSchemes.filter(s =>
-        (s.title && s.title.toLowerCase().includes(q)) ||
-        (s.description && s.description.toLowerCase().includes(q))
+    if (!q) { renderUsers(allUsers); return; }
+    const filtered = allUsers.filter(u =>
+        (u.display_name && u.display_name.toLowerCase().includes(q)) ||
+        (u.bio && u.bio.toLowerCase().includes(q))
     );
-    el('schemeCount').textContent = `找到 ${filtered.length} 个方案`;
-    renderCards(filtered);
+    el('userCount').textContent = `找到 ${filtered.length} 位摊主`;
+    renderUsers(filtered);
 }
 
-function renderCards(schemes) {
+function renderUsers(users) {
     const grid = el('cardGrid');
     grid.innerHTML = '';
 
-    if (!schemes || schemes.length === 0) {
+    if (!users || users.length === 0) {
         el('emptyState').style.display = 'flex';
-        el('schemeCount').textContent = '';
+        el('userCount').textContent = '';
         return;
     }
 
     el('emptyState').style.display = 'none';
-    el('schemeCount').textContent = `共 ${schemes.length} 个方案`;
+    el('userCount').textContent = `共 ${users.length} 位摊主`;
 
-    schemes.forEach(scheme => {
+    users.forEach(user => {
         const card = document.createElement('div');
-        card.className = 'scheme-card';
+        card.className = 'user-card';
         card.onclick = () => {
-            window.location.href = `scheme.html?id=${scheme.id}`;
+            window.location.href = `u.html?user=${encodeURIComponent(user.display_name || '')}`;
         };
 
-        // 缩略图
-        let thumbnailHTML = '';
-        const firstImage = scheme.images && scheme.images.length > 0 ? scheme.images[0] : null;
-        if (firstImage) {
-            thumbnailHTML = `<img class="card-thumbnail" src="${escapeHtml(firstImage)}" alt="${escapeHtml(scheme.title || '')}" loading="lazy" onerror="this.parentElement.querySelector('.card-thumbnail-placeholder').style.display='flex'; this.style.display='none';">`;
-            thumbnailHTML += `<div class="card-thumbnail-placeholder" style="display:none;">🧩</div>`;
+        const displayName = user.display_name || '匿名用户';
+        const initial = displayName.charAt(0).toUpperCase();
+        const avatarUrl = user.avatar_url || null;
+        const bio = user.bio || '';
+
+        let avatarHTML;
+        if (avatarUrl) {
+            avatarHTML = `<img class="user-card-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span class="user-card-avatar-placeholder" style="display:none;">${initial}</span>`;
         } else {
-            thumbnailHTML = `<div class="card-thumbnail-placeholder">🧩</div>`;
-        }
-
-        // 作者信息
-        const authorName = (scheme.user_profiles && scheme.user_profiles.display_name)
-            ? scheme.user_profiles.display_name
-            : '匿名用户';
-        const authorAvatar = (scheme.user_profiles && scheme.user_profiles.avatar_url)
-            ? scheme.user_profiles.avatar_url
-            : null;
-
-        const authorInitial = authorName.charAt(0).toUpperCase();
-
-        let authorAvatarHTML;
-        if (authorAvatar) {
-            authorAvatarHTML = `<img class="card-author-avatar" src="${escapeHtml(authorAvatar)}" alt="${escapeHtml(authorName)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span class="user-avatar-placeholder" style="display:none; width:22px; height:22px; font-size:10px;">${authorInitial}</span>`;
-        } else {
-            authorAvatarHTML = `<span class="user-avatar-placeholder" style="width:22px; height:22px; font-size:10px;">${authorInitial}</span>`;
+            avatarHTML = `<span class="user-card-avatar-placeholder">${initial}</span>`;
         }
 
         card.innerHTML = `
-            ${thumbnailHTML}
-            <div class="card-body">
-                <div class="card-title">${escapeHtml(scheme.title || '未命名方案')}</div>
-                <div class="card-author">
-                    ${authorAvatarHTML}
-                    <span class="card-author-name">${escapeHtml(authorName)}</span>
-                </div>
-                <div class="card-stats">
-                    <span class="card-stat">
-                        <span class="card-stat-icon">🃏</span> ${scheme.card_count || 0}
-                    </span>
-                    <span class="card-stat">
-                        <span class="card-stat-icon">❤️</span> ${scheme.like_count || 0}
-                    </span>
-                    <span class="card-stat">
-                        <span class="card-stat-icon">👁</span> ${scheme.view_count || 0}
-                    </span>
-                </div>
-                <div class="card-footer">
-                    <span class="card-time">${friendlyTime(scheme.created_at)}</span>
-                </div>
+            ${avatarHTML}
+            <div class="user-card-name">${escapeHtml(displayName)}</div>
+            <div class="user-card-bio">${escapeHtml(bio)}</div>
+            <div class="user-card-stats">
+                <span class="user-card-stat">
+                    <span class="user-card-stat-icon">📋</span> ${user.schemeCount || 0} 套方案
+                </span>
+                <span class="user-card-stat">
+                    <span class="user-card-stat-icon">❤️</span> ${user.totalLikes || 0}
+                </span>
             </div>
         `;
         grid.appendChild(card);
@@ -799,41 +784,119 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-/* ========== 加载方案 ========== */
-async function loadSchemes() {
+/* ========== 加载摊主 ========== */
+async function loadUsers() {
     el('loadingState').style.display = 'flex';
     el('emptyState').style.display = 'none';
     el('cardGrid').innerHTML = '';
 
-    const orderCol = currentSort === 'hottest' ? 'like_count' : 'created_at';
-
-    const { data, error } = await supa
+    // 1. 查询所有公开方案，用于按 owner_id 聚合
+    const { data: schemes, error: schemesError } = await supa
         .from('public_schemes')
-        .select('*,user_profiles!owner_id(display_name,avatar_url)')
-        .order(orderCol, { ascending: false })
-        .limit(50);
+        .select('owner_id,like_count,created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
 
-    el('loadingState').style.display = 'none';
-
-    if (error) {
-        console.error('加载方案失败:', error);
+    if (schemesError) {
+        el('loadingState').style.display = 'none';
+        console.error('加载方案失败:', schemesError);
         el('emptyState').style.display = 'flex';
         el('emptyState').querySelector('.empty-title').textContent = '加载失败';
         el('emptyState').querySelector('.empty-desc').textContent = '请检查网络后刷新重试';
         return;
     }
 
-    allSchemes = data || [];
-    renderCards(allSchemes);
+    if (!schemes || schemes.length === 0) {
+        el('loadingState').style.display = 'none';
+        el('emptyState').style.display = 'flex';
+        return;
+    }
+
+    // 2. 在 JS 里按 owner_id 分组聚合
+    const ownerMap = {};
+    schemes.forEach(s => {
+        if (!s.owner_id) return;
+        if (!ownerMap[s.owner_id]) {
+            ownerMap[s.owner_id] = {
+                owner_id: s.owner_id,
+                schemeCount: 0,
+                totalLikes: 0,
+                latestCreatedAt: s.created_at
+            };
+        }
+        ownerMap[s.owner_id].schemeCount++;
+        ownerMap[s.owner_id].totalLikes += (s.like_count || 0);
+        if (s.created_at > ownerMap[s.owner_id].latestCreatedAt) {
+            ownerMap[s.owner_id].latestCreatedAt = s.created_at;
+        }
+    });
+
+    const ownerIds = Object.keys(ownerMap);
+    if (ownerIds.length === 0) {
+        el('loadingState').style.display = 'none';
+        el('emptyState').style.display = 'flex';
+        return;
+    }
+
+    // 3. 查询 user_profiles
+    const { data: profiles, error: profilesError } = await supa
+        .from('user_profiles')
+        .select('*')
+        .in('id', ownerIds);
+
+    if (profilesError) {
+        el('loadingState').style.display = 'none';
+        console.error('加载用户信息失败:', profilesError);
+        el('emptyState').style.display = 'flex';
+        el('emptyState').querySelector('.empty-title').textContent = '加载失败';
+        el('emptyState').querySelector('.empty-desc').textContent = '请检查网络后刷新重试';
+        return;
+    }
+
+    // 4. JOIN 数据
+    const profileMap = {};
+    (profiles || []).forEach(p => {
+        profileMap[p.id] = p;
+    });
+
+    allUsers = ownerIds.map(id => {
+        const agg = ownerMap[id];
+        const profile = profileMap[id] || {};
+        return {
+            owner_id: id,
+            display_name: profile.display_name || '匿名用户',
+            avatar_url: profile.avatar_url || null,
+            bio: profile.bio || '',
+            schemeCount: agg.schemeCount,
+            totalLikes: agg.totalLikes,
+            latestCreatedAt: agg.latestCreatedAt
+        };
+    });
+
+    // 5. 排序
+    sortUsers();
+
+    el('loadingState').style.display = 'none';
+    renderUsers(allUsers);
+}
+
+function sortUsers() {
+    if (currentSort === 'mostLiked') {
+        allUsers.sort((a, b) => (b.totalLikes - a.totalLikes) || (b.schemeCount - a.schemeCount));
+    } else {
+        // mostSchemes (默认)
+        allUsers.sort((a, b) => (b.schemeCount - a.schemeCount) || (b.totalLikes - a.totalLikes));
+    }
 }
 
 /* ========== 排序切换 ========== */
 function switchSort(sort) {
     if (currentSort === sort) return;
     currentSort = sort;
-    el('sortNewest').classList.toggle('active', sort === 'newest');
-    el('sortHottest').classList.toggle('active', sort === 'hottest');
-    loadSchemes();
+    el('sortMostSchemes').classList.toggle('active', sort === 'mostSchemes');
+    el('sortMostLiked').classList.toggle('active', sort === 'mostLiked');
+    sortUsers();
+    renderUsers(allUsers);
 }
 
 /* ========== 认证状态刷新 ========== */
@@ -846,6 +909,7 @@ async function refreshAuthUI() {
         const email = currentUser.email || '';
         const initial = email.charAt(0).toUpperCase();
         container.innerHTML = `
+            <a href="/explore.html" class="nav-explore-icon active" title="糍粑摊广场">🏪</a>
             <div class="user-avatar-area" title="${escapeHtml(email)}">
                 <span class="user-avatar-placeholder">${initial}</span>
                 <span style="font-size:13px;color:#555;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(email)}</span>
@@ -854,6 +918,7 @@ async function refreshAuthUI() {
         `;
     } else {
         container.innerHTML = `
+            <a href="/explore.html" class="nav-explore-icon active" title="糍粑摊广场">🏪</a>
             <button class="btn-login" id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
         `;
     }
@@ -982,8 +1047,8 @@ async function init() {
         }
     });
 
-    // 加载方案
-    loadSchemes();
+    // 加载摊主
+    loadUsers();
 }
 
 window.addEventListener('load', init);
