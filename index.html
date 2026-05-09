@@ -994,7 +994,9 @@
         /* ========== 全局状态 ========== */
         let currentUser = null;
         let currentTier = 'free';
-        let currentScheme = 1;
+        // 恢复上次活跃的方案号
+        const savedScheme = parseInt(localStorage.getItem('lastScheme'));
+        let currentScheme = (savedScheme && savedScheme >= 900) ? savedScheme : 1;
         let authMode = 'login'; // 'login' or 'register'
 
         /* ========== 工具函数 ========== */
@@ -1246,6 +1248,7 @@
             if (n === currentScheme) return;
             saveCurrentScheme(false);
             currentScheme = n;
+            localStorage.setItem('lastScheme', n);
             const sel = el('schemeSelect');
             if (sel && sel.value !== String(n)) sel.value = String(n);
             loadScheme();
@@ -1997,6 +2000,7 @@
             currentUser = null;
             currentTier = 'free';
             currentScheme = 1;
+            localStorage.removeItem('lastScheme');
             // 清掉本地缓存的方案，避免下一个用户在公用浏览器看到上一个用户的内容
             for (let i = 1; i <= 100; i++) localStorage.removeItem(`scheme${i}`);
             renderGrid();
@@ -2179,6 +2183,7 @@
                 localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
                 showToast(`✅ "${imp.title}"已导入（24h试用，超限卡片只读）`);
             }
+            localStorage.setItem('lastScheme', impId);
             renderGrid();
             renderSchemeTabs();
             refreshTierBadge();
