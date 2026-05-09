@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贴词吧 · 方案分享</title>
+    <meta property="og:title" content="贴词吧 · 方案分享">
+    <meta property="og:description" content="AI 时代的提示词剪贴板">
+    <script src="supabase.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 40px 36px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .brand { font-size: 14px; color: #007aff; font-weight: 600; margin-bottom: 24px; }
+        .scheme-title { font-size: 24px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; word-break: break-word; }
+        .scheme-meta { font-size: 14px; color: #888; margin-bottom: 20px; }
+        .scheme-meta span { margin: 0 6px; }
+        .scheme-desc { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 32px; padding: 16px; background: #f9f9f9; border-radius: 8px; word-break: break-word; }
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 14px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:hover { background: #0051d5; }
+        .btn:disabled { background: #999; cursor: wait; }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-top: 12px;
+        }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .error { color: #ff3b30; font-size: 14px; margin-top: 16px; min-height: 20px; }
+        .success { color: #34c759; }
+        .loader { display: inline-block; width: 24px; height: 24px; border: 3px solid #e0e0e0; border-top-color: #007aff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 40px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .footer { margin-top: 24px; font-size: 12px; color: #aaa; }
+        .footer a { color: #007aff; }
+    </style>
+</head>
+<body>
+<div class="card" id="card">
+    <div class="brand">🧋 贴词吧</div>
+    <div id="content">
+        <div class="loader"></div>
+    </div>
+    <div class="error" id="error"></div>
+    <div class="footer">
+        <a href="/">打开贴词吧</a>
+    </div>
+</div>
+
+<script>
+/* ========== Supabase 配置 ========== */
+const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbG...3cvc';
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const content = document.getElementById('content');
+const errorBox = document.getElementById('error');
+
+async function init() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) {
+        content.innerHTML = '<p style="color:#888;margin:40px 0;">未提供方案 ID</p>';
+        return;
+    }
+
+    // 从 Supabase 拉取
+    const { data, error } = await supa
+        .from('shared_schemes')
+        .select('*')
+        .eq('short_id', id)
+        .maybeSingle();
+
+    if (error || !data) {
+        content.innerHTML = '<p style="color:#888;margin:40px 0;">方案不存在或已被删除</p>';
+        return;
+    }
+
+    // 增加浏览次数
+    supa.from('shared_schemes').update({ views: data.views + 1 }).eq('short_id', id).then(()=>{});
+
+    // 更新 OG 标签
+    document.title = `贴词吧 · ${data.title}`;
+    document.querySelector('meta[property="og:title"]').setAttribute('content', `贴词吧 · ${data.title}`);
+    document.querySelector('meta[property="og:description"]').setAttribute('content', `${data.card_count} 张卡片 · ${data.owner_email || '匿名用户'}`);
+
+    // 渲染预览
+    const scheme = data.scheme_data;
+    const preview = Array.isArray(scheme)
+        ? scheme.slice(0, 8).map(c => `<span style="display:inline-block;padding:2px 6px;margin:2px;border-radius:4px;font-size:12px;color:white;background:${c.color||'#888'}">${c.title||'...'}</span>`).join('')
+        : '';
+
+    content.innerHTML = `
+        <h1 class="scheme-title">${escapeHtml(data.title)}</h1>
+        <div class="scheme-meta">
+            <span>📋 ${data.card_count} 张卡片</span>
+            <span>👤 ${escapeHtml(data.owner_email || '匿名用户')}</span>
+        </div>
+        ${data.description ? `<div class="scheme-desc">${escapeHtml(data.description)}</div>` : ''}
+        ${preview ? `<div style="margin-bottom:24px;line-height:1.8">${preview}</div>` : ''}
+        <button class="btn" id="importBtn" onclick="doImport()">📥 导入到我的贴词吧</button>
+        <button class="btn btn-secondary" onclick="copyLink()">🔗 复制分享链接</button>
+    `;
+}
+
+function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        errorBox.className = 'error success';
+        errorBox.textContent = '链接已复制！';
+    });
+}
+
+async function doImport() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    const btn = document.getElementById('importBtn');
+    btn.disabled = true;
+    btn.textContent = '导入中…';
+
+    // 从 shared_schemes 读取完整数据
+    const { data } = await supa
+        .from('shared_schemes')
+        .select('*')
+        .eq('short_id', id)
+        .maybeSingle();
+
+    if (!data) {
+        errorBox.textContent = '方案不存在';
+        btn.disabled = false;
+        btn.textContent = '📥 导入到我的贴词吧';
+        return;
+    }
+
+    // 增加导入计数
+    supa.from('shared_schemes').update({ imports: data.imports + 1 }).eq('short_id', id).then(()=>{});
+
+    // 存到 localStorage，跳转到主页
+    localStorage.setItem('pendingImport', JSON.stringify({
+        source: data.short_id,
+        title: data.title,
+        cardCount: data.card_count,
+        schemeData: data.scheme_data,
+        importedAt: Date.now()
+    }));
+
+    window.location.href = '/';
+}
+
+init();
+</script>
+</body>
+</html>

@@ -455,6 +455,37 @@
         .preview-box .preview-title { font-weight: bold; margin-bottom: 6px; color: #ffd60a; }
         .preview-box .preview-content { line-height: 1.5; }
 
+        /* 24h 宽限期横幅 */
+        .grace-banner {
+            position: fixed;
+            top: 50px; left: 0; right: 0;
+            background: #fff3e0;
+            border-bottom: 1px solid #ffcc80;
+            padding: 8px 20px;
+            font-size: 13px;
+            color: #e65100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 997;
+        }
+        .grace-banner.hide { display: none; }
+        .grace-banner .grace-upgrade {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .grace-banner .grace-upgrade:hover { background: #f57c00; }
+        .input-item.readonly { opacity: 0.6; pointer-events: none; }
+        .input-item.readonly input { background: #f5f5f5; cursor: not-allowed; }
+        .input-item.readonly button { opacity: 0.5; cursor: not-allowed; }
+
         /* 登录/注册 弹窗 */
         .auth-modal {
             display: none;
@@ -684,7 +715,7 @@
             .scheme-tabs-list { max-width: 100%; }
             .scheme-controls {
                 display: grid;
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(6, 1fr);
                 gap: 6px;
                 margin-left: 0;
                 width: 100%;
@@ -762,6 +793,7 @@
                 <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
                 <button data-tip="清空当前方案的所有卡片内容" onclick="clearCurrentScheme()">🔄 <span class="lbl-full">重置方案</span><span class="lbl-short">重置</span></button>
                 <button data-tip="把当前方案立刻同步到云端（已登录）和本地" onclick="saveCurrentScheme()">💾 <span class="lbl-full">保存当前方案</span><span class="lbl-short">保存</span></button>
+                <button data-tip="生成分享链接，让其他人导入你的方案" onclick="shareCurrentScheme()">🔗 <span class="lbl-full">分享方案</span><span class="lbl-short">分享</span></button>
                 <button data-tip="把当前方案保存为 .txt 文件下载到本地" onclick="exportScheme()">📤 <span class="lbl-full">导出方案到本地</span><span class="lbl-short">导出</span></button>
                 <button data-tip="从本地 .txt 文件读取内容填充到卡片" onclick="importScheme()">📥 <span class="lbl-full">从本地导入方案</span><span class="lbl-short">导入</span></button>
                 <input type="file" id="fileInput" accept=".txt" style="display: none;" onchange="handleFileUpload(event)">
@@ -861,10 +893,11 @@
         function renderGrid() {
             const grid = el('inputGrid');
             grid.innerHTML = '';
-            const cardCount = tierConfig().cards;
+            const cardCount = getEffectiveCardLimit();
+            const readonly = isReadonly();
             for (let i = 1; i <= cardCount; i++) {
                 const item = document.createElement('div');
-                item.className = 'input-item';
+                item.className = readonly ? 'input-item readonly' : 'input-item';
                 item.id = `item${i}`;
                 item.innerHTML = `
                     <div class="title-row">
@@ -915,16 +948,37 @@
             const sel = el('schemeSelect');
             if (!sel) return;
             const total = tierConfig().schemes;
-            // 当前方案超出层级上限时回到 1
-            if (currentScheme > total) currentScheme = 1;
             sel.innerHTML = '';
+            // 本地方案
             for (let i = 1; i <= total; i++) {
                 const opt = document.createElement('option');
-                opt.value = String(i);
-                opt.textContent = total <= 10 ? `方案${chineseNum(i)}` : `方案 ${i}`;
+                opt.value = i;
+                opt.textContent = `方案 ${i}`;
                 if (i === currentScheme) opt.selected = true;
                 sel.appendChild(opt);
             }
+            // 导入的方案（号码 900+）
+            const importedIds = [];
+            for (let k in localStorage) {
+                if (k.startsWith('imported_')) importedIds.push(parseInt(k.split('_')[1]));
+            }
+            importedIds.sort((a,b) => a-b);
+            if (importedIds.length > 0) {
+                const sep = document.createElement('option');
+                sep.disabled = true;
+                sep.textContent = '── 📥 导入的方案 ──';
+                sel.appendChild(sep);
+                for (const id of importedIds) {
+                    const imp = JSON.parse(localStorage.getItem(`imported_${id}`));
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = `📥 ${imp.title}`;
+                    if (id === currentScheme) opt.selected = true;
+                    sel.appendChild(opt);
+                }
+            }
+            // 当前方案超出层级上限时回到 1
+            if (currentScheme < 900 && currentScheme > total) currentScheme = 1;
         }
 
         function chineseNum(n) {
@@ -1009,7 +1063,7 @@
             const includeTitles = !el('titleToggle').classList.contains('off');
             const useNewline    = !el('newlineToggle').classList.contains('off');
             const results = [];
-            const total = tierConfig().cards;
+            const total = getEffectiveCardLimit();
             for (let i = 1; i <= total; i++) {
                 const item = el(`item${i}`);
                 if (!item) continue;
@@ -1039,7 +1093,7 @@
         /* ========== 保存/加载（云 + 本地）========== */
         function collectSchemeData() {
             const data = { inputs: [], summary: el('summaryBox').value };
-            const total = tierConfig().cards;
+            const total = getEffectiveCardLimit();
             for (let i = 1; i <= total; i++) {
                 if (!el(`title${i}`)) continue;
                 const title = el(`title${i}`).value;
@@ -1055,8 +1109,8 @@
             const data = collectSchemeData();
             // 本地始终保存（断网/未登录时仍能用）
             localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(data));
-            // 登录用户：同步到云
-            if (currentUser) {
+            // 登录用户：同步到云（导入方案只存本地，不同步云端）
+            if (currentUser && currentScheme < 900) {
                 try {
                     await supa.from('schemes').upsert({
                         user_id: currentUser.id,
@@ -1071,8 +1125,47 @@
             if (showToastMessage) showToast(`方案${currentScheme} 已保存`);
         }
 
+        /* ========== 分享方案 ========== */
+        async function shareCurrentScheme() {
+            if (!currentUser) { showToast('请先登录后再分享'); openAuthModal('login'); return; }
+            // 先保存
+            await saveCurrentScheme(false);
+            const data = collectSchemeData();
+            const filledCards = data.inputs.filter(c => c.title || c.content).length;
+            if (filledCards === 0) { showToast('方案为空，请先添加内容'); return; }
+            // 生成短ID
+            const shortId = crypto.randomUUID().replace(/-/g,'').slice(0, 6);
+            const title = prompt('给方案取个名字：', '我的提示词方案');
+            if (!title) return;
+            const desc = prompt('方案描述（选填）：', '');
+            try {
+                const { error } = await supa.from('shared_schemes').insert({
+                    short_id: shortId,
+                    owner_id: currentUser.id,
+                    title: title,
+                    description: desc || '',
+                    card_count: filledCards,
+                    scheme_data: data,
+                    owner_email: currentUser.email || ''
+                });
+                if (error) throw error;
+                const link = `${window.location.origin}/s.html?id=${shortId}`;
+                await navigator.clipboard.writeText(link);
+                showToast('分享链接已复制！可发给任何人导入');
+            } catch (e) {
+                showToast('分享失败：' + (e.message || e));
+            }
+        }
+
         async function loadScheme() {
             let data = null;
+            // 导入的方案直接从 localStorage 读
+            if (currentScheme >= 900) {
+                const saved = localStorage.getItem(`scheme${currentScheme}`);
+                if (saved) data = JSON.parse(saved);
+                applySchemeData(data);
+                return;
+            }
             // 登录用户优先从云读
             if (currentUser) {
                 try {
@@ -1094,7 +1187,7 @@
         }
 
         function applySchemeData(data) {
-            const total = tierConfig().cards;
+            const total = getEffectiveCardLimit();
             // 先全部清空
             for (let i = 1; i <= total; i++) {
                 if (!el(`title${i}`)) continue;
@@ -1197,7 +1290,7 @@
 
         function exportScheme() {
             const lines = [];
-            const total = tierConfig().cards;
+            const total = getEffectiveCardLimit();
             for (let i = 1; i <= total; i++) {
                 if (!el(`title${i}`)) continue;
                 const t = el(`title${i}`).value.trim();
@@ -1228,7 +1321,7 @@
 
         function parseAndFillContent(content) {
             const lines = content.split('\n').filter(l => l.trim() !== '');
-            const total = tierConfig().cards;
+            const total = getEffectiveCardLimit();
             for (let i = 1; i <= total; i++) {
                 if (!el(`title${i}`)) continue;
                 el(`title${i}`).value = '';
@@ -1575,7 +1668,9 @@
             renderGrid();
             renderSchemeTabs();
             refreshTierBadge();
-            await loadScheme();
+            el('schemeSelect').value = n;
+            updateGraceBanner();
+            loadScheme();
         }
 
         /* ========== 初始化 ========== */
@@ -1585,6 +1680,9 @@
             startBrandRotation();
             initBottomPanel();
 
+            // 宽限期倒计时（每30秒刷新）
+            setInterval(updateGraceBanner, 30000);
+
             // 恢复开关状态
             if (localStorage.getItem('titleToggleState') === 'off') el('titleToggle').classList.add('off');
             if (localStorage.getItem('newlineToggleState') === 'off') el('newlineToggle').classList.add('off');
@@ -1592,6 +1690,43 @@
             // 检查已有 session
             const { data: { session } } = await supa.auth.getSession();
             await onAuthChanged(session);
+
+            // 处理待导入的分享方案
+            const pendingImport = localStorage.getItem('pendingImport');
+            if (pendingImport) {
+                try {
+                    const imp = JSON.parse(pendingImport);
+                    localStorage.removeItem('pendingImport');
+                    // 存为导入方案（方案号 900+）
+                    const impId = 900 + Date.now() % 100;
+                    localStorage.setItem(`imported_${impId}`, JSON.stringify({
+                        source: imp.source,
+                        title: imp.title,
+                        cardCount: imp.cardCount,
+                        importedAt: imp.importedAt,
+                        schemeData: imp.schemeData
+                    }));
+                    // 如果未超限直接加载
+                    const cfg = tierConfig();
+                    if (imp.cardCount <= cfg.cards) {
+                        currentScheme = impId;
+                        localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
+                        showToast(`已导入"${imp.title}"`);
+                    } else {
+                        // 超限，走宽限期
+                        localStorage.setItem(`grace_${impId}`, imp.importedAt);
+                        currentScheme = impId;
+                        localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
+                        showToast(`"${imp.title}"已导入（24h试用，超限卡片只读）`);
+                    }
+                    renderGrid();
+                    renderSchemeTabs();
+                    refreshTierBadge();
+                    applySchemeData(imp.schemeData);
+                    updateGraceBanner();
+                    return;
+                } catch (e) { console.warn('导入分享失败：', e); }
+            }
 
             // 如果登录成功且有 pendingInviteCode（之前注册没兑换的），自动尝试兑换
             if (session && currentTier === 'basic') {
