@@ -999,6 +999,51 @@
         function el(id) { return document.getElementById(id); }
         function tierConfig() { return TIERS[currentTier] || TIERS.free; }
 
+        /* ========== 卡数/只读/宽限期 ========== */
+        function getEffectiveCardLimit() {
+            const cfg = tierConfig();
+            if (currentScheme >= 900) {
+                const grace = localStorage.getItem(`grace_${currentScheme}`);
+                const imported = localStorage.getItem(`imported_${currentScheme}`);
+                if (grace && imported) {
+                    try {
+                        const impData = JSON.parse(imported);
+                        const graceTime = parseInt(grace);
+                        if (Date.now() - graceTime < 24 * 60 * 60 * 1000) {
+                            return impData.cardCount || cfg.cards;
+                        }
+                        localStorage.removeItem(`grace_${currentScheme}`);
+                    } catch(e) {}
+                }
+            }
+            return cfg.cards;
+        }
+
+        function isReadonly() {
+            if (currentScheme >= 900) {
+                const grace = localStorage.getItem(`grace_${currentScheme}`);
+                if (!grace) return false;
+                if (Date.now() - parseInt(grace) < 24 * 60 * 60 * 1000) return true;
+                localStorage.removeItem(`grace_${currentScheme}`);
+                return false;
+            }
+            return false;
+        }
+
+        function updateGraceBanner() {
+            const banner = document.getElementById('graceBanner');
+            if (!banner) return;
+            if (currentScheme < 900) { banner.style.display = 'none'; return; }
+            const grace = localStorage.getItem(`grace_${currentScheme}`);
+            if (!grace) { banner.style.display = 'none'; return; }
+            const remaining = 24 * 60 * 60 * 1000 - (Date.now() - parseInt(grace));
+            if (remaining <= 0) { localStorage.removeItem(`grace_${currentScheme}`); banner.style.display = 'none'; renderGrid(); return; }
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            banner.innerHTML = `⏳ 试用剩余 ${h}h${m}m · 超限卡片只读 · <a href=\"#\" onclick=\"openRedeemModal()\">升级</a>`;
+            banner.style.display = '';
+        }
+
         /* ========== 渲染：卡片网格 ========== */
         function renderGrid() {
             const grid = el('inputGrid');
