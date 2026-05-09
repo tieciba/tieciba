@@ -731,7 +731,7 @@
                     <span class="icon">🔗</span> 分享
                 </button>
                 <button class="action-btn import-btn" id="importBtn" onclick="doImport()">
-                    📥 导入到贴词吧
+                    📥 导入到我的方案
                 </button>
             </div>
         </div>
@@ -902,13 +902,22 @@ function buildCards(inputs) {
         section.style.display = 'none';
         return;
     }
+    // 过滤掉空卡片（无标题且无内容）
+    const filled = inputs.filter(c => (c.title || '').trim() || (c.content || '').trim());
+    if (filled.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
     section.style.display = 'block';
-    $('#cardsCount').textContent = inputs.length;
+    $('#cardsCount').textContent = filled.length;
 
-    grid.innerHTML = inputs.map(c => {
-        const color = c.color || '#888';
-        const title = c.title || '未命名';
-        // 提取 emoji / 首字符
+    grid.innerHTML = filled.map(c => {
+        let color = c.color || '#888';
+        // 白色/接近白色 → 改用浅灰底
+        if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') {
+            color = '#e0e0e0';
+        }
+        const title = c.title || c.content?.slice(0, 12) || '卡片';
         const emoji = title.match(/^[\p{Emoji}]/u) ? title.charAt(0) : '';
         const text = emoji ? title.slice(1).trim() : title;
         return `<span class="card-chip" style="background:${color}" title="${escapeHtml(title)}">
@@ -1032,16 +1041,11 @@ async function doImport() {
     btn.textContent = '导入中…';
 
     // 存到 localStorage，跳转到主页
-    const schemeData = currentScheme.scheme_data;
-    const inputs = (schemeData && typeof schemeData === 'object' && !Array.isArray(schemeData))
-        ? schemeData.inputs
-        : (Array.isArray(schemeData) ? schemeData : []);
-
     localStorage.setItem('pendingImport', JSON.stringify({
         source: currentScheme.id,
         title: currentScheme.title,
         cardCount: currentScheme.card_count,
-        schemeData: inputs,
+        schemeData: currentScheme.scheme_data,
         importedAt: Date.now()
     }));
 
