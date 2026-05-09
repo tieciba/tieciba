@@ -2249,7 +2249,7 @@
             if (existingIds && existingIds.length > 0) {
                 btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
             }
-            btns += `<button class="import-btn-ok" onclick="confirmImport()">${val === 'temp' ? '导入为临时方案' : '导入到方案' + val}</button>`;
+            btns += `<button class="import-btn-ok" onclick="confirmImport()">${val === 'temp' ? '导入为临时方案' : '导入到该方案'}</button>`;
             actions.innerHTML = btns;
         }
 
@@ -2336,6 +2336,11 @@
             updateGraceBanner();
             pendingImportData = null;
         }
+
+        // 显式挂载到 window，确保 onclick 属性能访问
+        window.confirmImport = confirmImport;
+        window.closeImportConfirm = closeImportConfirm;
+        window.onImportSchemeChange = onImportSchemeChange;
 
         function escapeHtml(s) {
             const d = document.createElement('div');
