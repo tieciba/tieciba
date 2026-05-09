@@ -220,31 +220,48 @@
             margin-bottom: 10px;
             font-weight: 500;
         }
-        .cards-grid {
+        .cards-text-list {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            flex-direction: column;
+            gap: 14px;
         }
-        .card-chip {
-            display: inline-flex;
+        .text-card {
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 14px 16px;
+            border-left: 3px solid #e0e0e0;
+        }
+        .text-card-head {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            cursor: default;
-            transition: transform 0.15s;
-            max-width: 100%;
+            gap: 8px;
+            margin-bottom: 6px;
         }
-        .card-chip:hover { transform: scale(1.04); }
-        .card-chip-emoji { font-size: 16px; }
-        .card-chip-text {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .text-card-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .text-card-index {
+            font-size: 13px;
+            color: #999;
+            flex-shrink: 0;
+            min-width: 24px;
+        }
+        .text-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            word-break: break-word;
+        }
+        .text-card-body {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+            word-break: break-word;
+            white-space: pre-wrap;
+            margin-top: 6px;
+            padding-left: 18px;
         }
 
         /* Action Bar */
@@ -467,14 +484,9 @@
                 aspect-ratio: 16/10;
                 min-height: 180px;
             }
-            .card-chip {
-                padding: 7px 12px;
-                font-size: 13px;
-            }
-            .card-chip-text {
-                white-space: normal;
-                word-break: break-word;
-            }
+            .text-card { padding: 12px 14px; }
+            .text-card-title { font-size: 13px; }
+            .text-card-body { font-size: 12px; padding-left: 14px; }
             .toast {
                 max-width: calc(100vw - 40px);
                 overflow: hidden;
@@ -563,18 +575,10 @@
             .cards-section {
                 margin-bottom: 16px;
             }
-            .cards-grid {
-                gap: 8px;
-            }
-            .card-chip {
-                padding: 6px 10px;
-                font-size: 13px;
-                border-radius: 16px;
-            }
-            .card-chip-text {
-                white-space: normal;
-                word-break: break-word;
-            }
+            .cards-text-list { gap: 10px; }
+            .text-card { padding: 10px 12px; }
+            .text-card-title { font-size: 13px; }
+            .text-card-body { font-size: 12px; padding-left: 12px; }
             /* Action bar */
             .action-bar {
                 gap: 5px;
@@ -716,7 +720,7 @@
             <!-- Cards Preview -->
             <div class="cards-section" id="cardsSection" style="display:none">
                 <div class="cards-label">📋 方案卡片 (<span id="cardsCount">0</span> 张)</div>
-                <div class="cards-grid" id="cardsGrid"></div>
+                <div class="cards-text-list" id="cardsTextList"></div>
             </div>
 
             <!-- Action Bar -->
@@ -894,10 +898,10 @@ function buildCarousel(images) {
     updateCarousel();
 }
 
-/* ========== 卡片预览 ========== */
+/* ========== 卡片文字预览 ========== */
 function buildCards(inputs) {
     const section = $('#cardsSection');
-    const grid = $('#cardsGrid');
+    const list = $('#cardsTextList');
     if (!inputs || inputs.length === 0) {
         section.style.display = 'none';
         return;
@@ -911,19 +915,18 @@ function buildCards(inputs) {
     section.style.display = 'block';
     $('#cardsCount').textContent = filled.length;
 
-    grid.innerHTML = filled.map(c => {
-        let color = c.color || '#888';
-        // 白色/接近白色 → 改用浅灰底
-        if (color === '#ffffff' || color === '#FFFFFF' || color === 'white') {
-            color = '#e0e0e0';
-        }
-        const title = c.title || c.content?.slice(0, 12) || '卡片';
-        const emoji = title.match(/^[\p{Emoji}]/u) ? title.charAt(0) : '';
-        const text = emoji ? title.slice(1).trim() : title;
-        return `<span class="card-chip" style="background:${color}" title="${escapeHtml(title)}">
-            ${emoji ? `<span class="card-chip-emoji">${emoji}</span>` : ''}
-            <span class="card-chip-text">${escapeHtml(text)}</span>
-        </span>`;
+    list.innerHTML = filled.map((c, i) => {
+        const color = c.color || '#888';
+        const title = (c.title || '').trim();
+        const content = (c.content || '').trim();
+        return `<div class="text-card">
+            <div class="text-card-head">
+                <span class="text-card-dot" style="background:${color}"></span>
+                <span class="text-card-index">${i + 1}.</span>
+                <span class="text-card-title">${escapeHtml(title || '（无标题）')}</span>
+            </div>
+            ${content ? `<div class="text-card-body">${escapeHtml(content)}</div>` : ''}
+        </div>`;
     }).join('');
 }
 
