@@ -327,6 +327,10 @@
                 width: 48px;
                 height: 48px;
             }
+            .scheme-card .card-category {
+                font-size: 10px;
+                padding: 1px 6px;
+            }
             .scheme-card .card-footer {
                 font-size: 11px;
                 padding-top: 8px;
@@ -442,6 +446,15 @@
             border-radius: 3px;
             font-size: 11px;
             color: white;
+        }
+        .card-category {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-right: 8px;
         }
         .scheme-card .card-footer {
             display: flex;
@@ -667,6 +680,20 @@ const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbG...3cvc';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ========== 分类定义 ========== */
+const CATEGORIES = [
+    { key: 'all',            label: '全部',           icon: '🏷️', color: '#007aff', bg: '#e8f4ff' },
+    { key: '图生图提示词',   label: '🔄 图生图提示词', icon: '🔄', color: '#FF6B6B', bg: '#FFF0F0' },
+    { key: '文生图提示词',   label: '📝 文生图提示词', icon: '📝', color: '#4ECDC4', bg: '#F0FFFE' },
+    { key: '首尾帧提示词',   label: '🎬 首尾帧提示词', icon: '🎬', color: '#FFD93D', bg: '#FFFEF0' },
+    { key: '洗图提示词',     label: '🧹 洗图提示词',   icon: '🧹', color: '#6C5CE7', bg: '#F5F0FF' },
+    { key: '图片优化提示词', label: '✨ 图片优化提示词', icon: '✨', color: '#A8E6CF', bg: '#F0FFF5' },
+    { key: 'AI任务提示词',   label: '🤖 AI任务提示词', icon: '🤖', color: '#FF8B94', bg: '#FFF5F5' },
+    { key: '其他提示词',     label: '📌 其他提示词',   icon: '📌', color: '#B8B8B8', bg: '#F5F5F5' }
+];
+const CAT_MAP = {};
+CATEGORIES.forEach(c => { CAT_MAP[c.key] = c; });
+
 /* ========== 全局状态 ========== */
 let currentUser = null;
 let profileUser = null;
@@ -890,10 +917,17 @@ function renderSchemes(schemes, schemeCount) {
         return `<div class="card-images">${imgs}</div>`;
     }
 
+    function getCategoryBadgeHtml(scheme) {
+        if (!scheme.category) return '';
+        const cat = CAT_MAP[scheme.category] || CAT_MAP['其他提示词'];
+        return `<span class="card-category" style="background:${cat.bg};color:${cat.color};border:1px solid ${cat.color}22;">${cat.icon} ${cat.key}</span>`;
+    }
+
     return `<div class="schemes-grid">
         ${schemes.map(s => `
             <a class="scheme-card" href="/s.html?id=${s.id}">
                 <div class="card-title">${escapeHtml(s.title)}</div>
+                ${getCategoryBadgeHtml(s)}
                 <div class="card-desc${s.description ? '' : ' empty'}">${s.description ? escapeHtml(s.description) : '暂无描述'}</div>
                 ${getCardPreview(s)}
                 ${getImagesHtml(s)}

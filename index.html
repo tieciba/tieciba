@@ -947,6 +947,17 @@
             <input type="text" id="shareTitle" placeholder="给方案取个名字" maxlength="100">
             <textarea id="shareDesc" placeholder="方案描述（选填）" maxlength="500"></textarea>
             <div class="share-public-fields" id="sharePublicFields">
+                <p style="font-size:12px;color:#888;margin-bottom:6px;">分类</p>
+                <select id="shareCategory" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:12px;outline:none;background:white;">
+                    <option value="">请选择分类</option>
+                    <option value="图生图提示词">🔄 图生图提示词</option>
+                    <option value="文生图提示词">📝 文生图提示词</option>
+                    <option value="首尾帧提示词">🎬 首尾帧提示词</option>
+                    <option value="洗图提示词">🧹 洗图提示词</option>
+                    <option value="图片优化提示词">✨ 图片优化提示词</option>
+                    <option value="AI任务提示词">🤖 AI任务提示词</option>
+                    <option value="其他提示词">📌 其他提示词</option>
+                </select>
                 <p style="font-size:12px;color:#888;margin-bottom:8px;">配图（最多5张，每张≤500KB）</p>
                 <div class="share-image-upload" id="shareImageSlots">
                     <div class="share-image-slot" onclick="addShareImage(this)">+</div>
@@ -1502,6 +1513,7 @@
                     const { error } = await supa.from('public_schemes').insert({
                         owner_id: currentUser.id,
                         title: title, description: desc,
+                        category: el('shareCategory').value || '其他提示词',
                         card_count: filledCards, scheme_data: data,
                         images: imageUrls
                     });

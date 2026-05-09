@@ -68,7 +68,6 @@
             font-weight: 600;
             background: #e8f4ff;
         }
-        /* 探索图标按钮 */
         .nav-explore-icon {
             background: none;
             border: none;
@@ -127,6 +126,18 @@
             font-size: 13px;
             font-weight: 600;
         }
+        .btn-logout {
+            padding: 7px 14px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #666;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover { background: #f5f5f5; color: #ff3b30; border-color: #ff3b30; }
 
         /* ========== 主容器 ========== */
         .main-container {
@@ -135,14 +146,54 @@
             padding: 20px;
         }
 
-        /* ========== 排序切换 ========== */
-        .sort-bar {
+        /* ========== 筛选栏 ========== */
+        .filter-bar {
+            margin-bottom: 24px;
+        }
+        /* 第一行：分类标签 */
+        .category-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+        }
+        .category-row::-webkit-scrollbar { display: none; }
+        .cat-pill {
+            flex-shrink: 0;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1.5px solid #e0e0e0;
+            background: white;
+            color: #555;
+            font-family: inherit;
+            transition: all 0.2s;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .cat-pill:hover {
+            border-color: #007aff;
+            color: #007aff;
+        }
+        .cat-pill.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+            font-weight: 600;
+        }
+        /* 第二行：排序 + 搜索 + 计数 */
+        .sort-search-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
             gap: 12px;
+            flex-wrap: wrap;
         }
         .sort-tabs {
             display: flex;
@@ -150,8 +201,7 @@
             border-radius: 8px;
             padding: 3px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            max-width: 100%;
-            overflow: hidden;
+            flex-shrink: 0;
         }
         .sort-tab {
             padding: 8px 20px;
@@ -170,108 +220,162 @@
             font-weight: 600;
         }
         .sort-tab:hover:not(.active) { background: #f0f0f0; }
-        .scheme-count {
+        .search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .search-input {
+            padding: 7px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            width: 200px;
+            outline: none;
+            font-family: inherit;
+            background: #f9f9f9;
+            transition: border-color 0.2s, width 0.2s, background 0.2s;
+        }
+        .search-input:focus {
+            border-color: #007aff;
+            width: 260px;
+            background: white;
+        }
+        .search-input::placeholder { color: #aaa; }
+        .result-count {
             font-size: 13px;
             color: #999;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
-        /* ========== 卡片网格 ========== */
+        /* ========== 方案卡片网格 ========== */
         .card-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 16px;
         }
-        @media (min-width: 640px) {
+        @media (min-width: 641px) {
             .card-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        @media (min-width: 1024px) {
+        @media (min-width: 1025px) {
             .card-grid { grid-template-columns: repeat(3, 1fr); }
         }
         @media (min-width: 1400px) {
             .card-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
-        /* ========== 用户卡片（糍粑摊主） ========== */
-        .user-card {
+        /* ========== 方案卡片 ========== */
+        .scheme-card {
             background: white;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            max-width: 100%;
-            min-width: 0;
-            padding: 24px 20px 20px;
+            padding: 20px 18px 16px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
+            min-width: 0;
         }
-        .user-card:hover {
+        .scheme-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.10);
         }
-        .user-card-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #e8f4ff;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-        .user-card-avatar-placeholder {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #007aff, #5856d6);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-        .user-card-name {
+        .scheme-card-title {
             font-size: 17px;
             font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 6px;
-            line-height: 1.3;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .user-card-bio {
-            font-size: 13px;
-            color: #888;
-            margin-bottom: 14px;
-            line-height: 1.4;
-            max-width: 100%;
+            margin-bottom: 8px;
+            line-height: 1.35;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             word-break: break-word;
-            min-height: 18px;
         }
-        .user-card-stats {
-            display: flex;
-            align-items: center;
-            gap: 20px;
+        .scheme-card-desc {
             font-size: 13px;
-            color: #666;
+            color: #777;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+            min-height: 20px;
+            flex: 1;
         }
-        .user-card-stat {
-            display: flex;
+        .scheme-card-badge-row {
+            margin-bottom: 14px;
+        }
+        .scheme-card-badge {
+            display: inline-flex;
             align-items: center;
             gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
         }
-        .user-card-stat-icon {
-            font-size: 15px;
+        .scheme-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .scheme-author {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            text-decoration: none;
+            min-width: 0;
+            flex-shrink: 1;
+        }
+        .scheme-author:hover { color: #007aff; }
+        .author-mini-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid #eee;
+        }
+        .author-mini-avatar-placeholder {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007aff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .author-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .scheme-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: #aaa;
+            flex-shrink: 0;
+        }
+        .scheme-stat {
+            display: flex;
+            align-items: center;
+            gap: 3px;
         }
 
         /* ========== 加载 / 空状态 ========== */
@@ -299,7 +403,7 @@
             color: #999;
         }
         .empty-state {
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -414,18 +518,6 @@
             margin-top: 14px;
             text-align: center;
         }
-        .btn-logout {
-            padding: 7px 14px;
-            border: 1px solid #ddd;
-            background: white;
-            color: #666;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-        .btn-logout:hover { background: #f5f5f5; color: #ff3b30; border-color: #ff3b30; }
 
         /* ========== 页脚 ========== */
         .page-footer {
@@ -440,104 +532,55 @@
         }
         .page-footer a:hover { text-decoration: underline; }
 
-        /* ========== 平板 / 窄分屏 (481-768px) ========== */
+        /* ========== 响应式：平板 / 窄分屏 (481-768px) ========== */
         @media (max-width: 768px) {
             .top-bar { padding: 0 14px; }
             .top-bar-left { gap: 14px; }
             .nav-links { gap: 2px; }
             .nav-link { padding: 6px 12px; font-size: 13px; }
             .main-container { padding: 14px; }
-            .sort-tab { padding: 8px 16px; }
+            .sort-tab { padding: 8px 16px; font-size: 13px; }
+            .search-input { width: 140px; }
+            .search-input:focus { width: 180px; }
             .auth-modal-content { padding: 28px 20px; }
+            .cat-pill { padding: 6px 13px; font-size: 12px; }
         }
 
-        /* ========== 手机竖屏 (≤480px) ========== */
+        /* ========== 响应式：手机竖屏 (≤480px) ========== */
         @media (max-width: 480px) {
-            /* 导航栏 */
             .top-bar {
                 padding: 0 8px;
                 height: 48px;
             }
-            .top-bar-left {
-                gap: 6px;
-            }
-            .brand {
-                font-size: 14px;
-            }
-            .nav-links {
-                gap: 1px;
-            }
-            .nav-link {
-                padding: 5px 7px;
-                font-size: 12px;
-            }
-            .btn-login {
-                padding: 5px 10px;
-                font-size: 12px;
-            }
-            .btn-logout {
-                padding: 5px 10px;
-                font-size: 12px;
-            }
+            .top-bar-left { gap: 6px; }
+            .brand { font-size: 14px; }
+            .nav-links { gap: 1px; }
+            .nav-link { padding: 5px 7px; font-size: 12px; }
+            .btn-login { padding: 5px 10px; font-size: 12px; }
+            .btn-logout { padding: 5px 10px; font-size: 12px; }
+            body { padding-top: 54px; }
+            .main-container { padding: 10px 8px; }
+            .filter-bar { margin-bottom: 16px; }
+            .category-row { gap: 6px; margin-bottom: 10px; }
+            .cat-pill { padding: 5px 11px; font-size: 11px; }
 
-            /* 主体 */
-            .main-container {
-                padding: 8px;
-            }
-            body {
-                padding-top: 54px;
-            }
+            .sort-search-row { gap: 8px; }
+            .sort-tabs { padding: 2px; }
+            .sort-tab { padding: 7px 14px; font-size: 12px; }
+            .search-input { width: 100px; font-size: 12px; padding: 6px 10px; }
+            .search-input:focus { width: 130px; }
+            .result-count { font-size: 11px; }
 
-            /* 排序栏 */
-            .sort-bar {
-                gap: 8px;
-                margin-bottom: 16px;
-            }
-            .sort-tabs {
-                padding: 2px;
-            }
-            .sort-tab {
-                padding: 6px 11px;
-                font-size: 12px;
-            }
-            .scheme-count {
-                font-size: 12px;
-            }
+            .card-grid { gap: 10px; }
+            .scheme-card { padding: 14px 12px 12px; }
+            .scheme-card-title { font-size: 14px; }
+            .scheme-card-desc { font-size: 12px; }
+            .scheme-card-badge { font-size: 10px; padding: 2px 8px; }
+            .scheme-author { font-size: 11px; }
+            .scheme-stats { font-size: 11px; gap: 8px; }
 
-            /* 用户卡片 */
-            .card-grid {
-                gap: 10px;
-            }
-            .user-card {
-                padding: 18px 14px 16px;
-            }
-            .user-card-avatar, .user-card-avatar-placeholder {
-                width: 64px;
-                height: 64px;
-                margin-bottom: 10px;
-            }
-            .user-card-avatar-placeholder {
-                font-size: 26px;
-            }
-            .user-card-name {
-                font-size: 15px;
-            }
-            .user-card-bio {
-                font-size: 12px;
-                margin-bottom: 10px;
-            }
-            .user-card-stats {
-                font-size: 12px;
-                gap: 14px;
-            }
-
-            /* 登录后的用户区 */
-            .top-bar-right {
-                gap: 6px;
-            }
-            .user-avatar-area {
-                gap: 4px;
-            }
+            .top-bar-right { gap: 6px; }
+            .user-avatar-area { gap: 4px; }
             .user-avatar-area span {
                 max-width: 80px !important;
                 font-size: 11px !important;
@@ -547,85 +590,17 @@
                 height: 26px;
             }
 
-            /* 主容器防溢出 */
-            .main-container {
-                overflow-wrap: break-word;
-                word-break: break-word;
-            }
+            .auth-modal-content { padding: 20px 14px; }
+            .auth-tab { font-size: 14px; padding: 8px; }
+            .auth-modal input { padding: 9px 10px; font-size: 13px; }
+            .auth-submit { padding: 10px; font-size: 14px; }
 
-            /* 认证弹窗 */
-            .auth-modal-content {
-                padding: 20px 14px;
-            }
-            .auth-tab {
-                font-size: 14px;
-                padding: 8px;
-            }
-            .auth-modal input {
-                padding: 9px 10px;
-                font-size: 13px;
-            }
-            .auth-submit {
-                padding: 10px;
-                font-size: 14px;
-            }
-
-            /* 页脚 */
-            .page-footer {
-                padding: 20px 10px;
-                font-size: 11px;
-            }
-
-            /* 空状态 / 加载 */
-            .loading-state, .empty-state {
-                padding: 48px 16px;
-            }
-            .empty-icon {
-                font-size: 48px;
-            }
-            .empty-title {
-                font-size: 16px;
-            }
-            .empty-desc {
-                font-size: 13px;
-            }
+            .page-footer { padding: 20px 10px; font-size: 11px; }
+            .loading-state, .empty-state { padding: 48px 16px; }
+            .empty-icon { font-size: 48px; }
+            .empty-title { font-size: 16px; }
+            .empty-desc { font-size: 13px; }
         }
-    .search-input {
-        padding: 6px 12px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        font-size: 13px;
-        width: 180px;
-        outline: none;
-        font-family: inherit;
-        background: #f9f9f9;
-        transition: border-color 0.2s, width 0.2s;
-    }
-    .search-input:focus { border-color: #007aff; width: 240px; background: white; }
-    .search-input::placeholder { color: #aaa; }
-    @media (max-width: 768px) {
-        .search-input { width: 120px; }
-        .search-input:focus { width: 160px; }
-    }
-    @media (max-width: 480px) {
-        .search-input { width: 80px; font-size: 12px; padding: 5px 8px; }
-        .search-input:focus { width: 110px; }
-    }
-
-    .card-thumb { width: 100%; height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; }
-    .card-thumb-placeholder { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border-radius: 8px 8px 0 0; font-size: 32px; color: #ccc; }
-    .scheme-card-body { padding: 12px 14px; }
-    .scheme-card-title { font-size: 16px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; line-height: 1.3; }
-    .scheme-card-desc { font-size: 13px; color: #777; margin-bottom: 10px; line-height: 1.4; min-height: 18px; }
-    .scheme-card-footer { display: flex; justify-content: space-between; align-items: center; }
-    .scheme-author { font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 4px; }
-    .author-mini-avatar { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
-    .scheme-stats { font-size: 12px; color: #aaa; }
-    @media (max-width: 480px) {
-        .card-thumb, .card-thumb-placeholder { height: 130px; }
-        .scheme-card-title { font-size: 14px; }
-        .scheme-card-desc { font-size: 12px; }
-    }
     </style>
 </head>
 <body>
@@ -638,7 +613,6 @@
             <a href="/" class="nav-link">创作</a>
         </div>
     </div>
-    <input type="text" class="search-input" id="searchInput" placeholder="搜索方案…" oninput="onSearch()">
     <div class="top-bar-right" id="authArea">
         <a href="/explore.html" class="nav-explore-icon active" title="方案探索">🏪</a>
         <button class="btn-login" id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
@@ -647,13 +621,21 @@
 
 <!-- ========== 主容器 ========== -->
 <div class="main-container">
-    <!-- 排序开关 -->
-    <div class="sort-bar">
-        <div class="sort-tabs">
-            <button class="sort-tab active" id="sortNewest" onclick="switchSort('newest')">🕐 最新发布</button>
-            <button class="sort-tab" id="sortHottest" onclick="switchSort('mostLiked')">⭐ 最受欢迎</button>
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+        <!-- 第一行：分类标签 -->
+        <div class="category-row" id="categoryRow"></div>
+        <!-- 第二行：排序 + 搜索 + 计数 -->
+        <div class="sort-search-row">
+            <div class="sort-tabs">
+                <button class="sort-tab active" id="sortNewest" onclick="switchSort('newest')">🕐 最新发布</button>
+                <button class="sort-tab" id="sortHottest" onclick="switchSort('mostLiked')">⭐ 最受欢迎</button>
+            </div>
+            <div class="search-wrap">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索方案…" oninput="onSearch()">
+                <span class="result-count" id="resultCount"></span>
+            </div>
         </div>
-        <span class="scheme-count" id="userCount"></span>
     </div>
 
     <!-- 卡片网格 -->
@@ -666,7 +648,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div class="empty-state" id="emptyState" style="display:none;">
+    <div class="empty-state" id="emptyState">
         <div class="empty-icon">🏕️</div>
         <div class="empty-title">还没有公开方案</div>
         <div class="empty-desc">去贴词吧创作一个方案并公开分享，成为第一位摊主吧～</div>
@@ -697,20 +679,43 @@
 <script>
 /* ========== Supabase 配置 ========== */
 const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
+const SUPABASE_ANON_KEY = 'eyJhbG...3cvc';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ========== 分类定义 ========== */
+const CATEGORIES = [
+    { key: 'all',            label: '全部',           icon: '🏷️', color: '#007aff', bg: '#e8f4ff' },
+    { key: '图生图提示词',   label: '🔄 图生图提示词', icon: '🔄', color: '#FF6B6B', bg: '#FFF0F0' },
+    { key: '文生图提示词',   label: '📝 文生图提示词', icon: '📝', color: '#4ECDC4', bg: '#F0FFFE' },
+    { key: '首尾帧提示词',   label: '🎬 首尾帧提示词', icon: '🎬', color: '#FFD93D', bg: '#FFFEF0' },
+    { key: '洗图提示词',     label: '🧹 洗图提示词',   icon: '🧹', color: '#6C5CE7', bg: '#F5F0FF' },
+    { key: '图片优化提示词', label: '✨ 图片优化提示词', icon: '✨', color: '#A8E6CF', bg: '#F0FFF5' },
+    { key: 'AI任务提示词',   label: '🤖 AI任务提示词', icon: '🤖', color: '#FF8B94', bg: '#FFF5F5' },
+    { key: '其他提示词',     label: '📌 其他提示词',   icon: '📌', color: '#B8B8B8', bg: '#F5F5F5' }
+];
+const CAT_MAP = {};
+CATEGORIES.forEach(c => { CAT_MAP[c.key] = c; });
 
 /* ========== 全局状态 ========== */
 let currentUser = null;
-let currentSort = 'newest'; // 'newest' | 'mostLiked'
-let authMode = 'login'; // 'login' | 'register'
-let allUsers = [];
+let currentSort = 'newest';      // 'newest' | 'mostLiked'
+let currentCategory = 'all';    // 'all' | category key
+let authMode = 'login';         // 'login' | 'register'
+let allSchemes = [];            // raw schemes from DB
+let profileMap = {};            // owner_id -> profile
 
 /* ========== 工具函数 ========== */
 function el(id) { return document.getElementById(id); }
 
-/* ========== 友好时间格式化 ========== */
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 function friendlyTime(isoString) {
+    if (!isoString) return '';
     const now = Date.now();
     const then = new Date(isoString).getTime();
     const diff = now - then;
@@ -729,94 +734,162 @@ function friendlyTime(isoString) {
     return `${years}年前`;
 }
 
-/* ========== 搜索与渲染 ========== */
-let allSchemes = [];
-
-function onSearch() {
-    const q = (el('searchInput').value || '').toLowerCase().trim();
-    if (!q) { renderUsers(allUsers); return; }
-    const filtered = allUsers.filter(u =>
-        (u.display_name && u.display_name.toLowerCase().includes(q)) ||
-        (u.bio && u.bio.toLowerCase().includes(q))
-    );
-    el('userCount').textContent = `找到 ${filtered.length} 位摊主`;
-    renderUsers(filtered);
+/* ========== 分类筛选 ========== */
+function buildCategoryPills() {
+    const row = el('categoryRow');
+    row.innerHTML = '';
+    CATEGORIES.forEach(cat => {
+        const pill = document.createElement('button');
+        pill.className = 'cat-pill' + (cat.key === currentCategory ? ' active' : '');
+        pill.textContent = cat.label;
+        pill.onclick = () => switchCategory(cat.key);
+        row.appendChild(pill);
+    });
 }
 
-function renderUsers(users) {
+function switchCategory(key) {
+    if (currentCategory === key) return;
+    currentCategory = key;
+    // Update pill active states
+    const pills = el('categoryRow').querySelectorAll('.cat-pill');
+    pills.forEach((p, i) => {
+        p.classList.toggle('active', CATEGORIES[i].key === key);
+    });
+    renderFiltered();
+}
+
+/* ========== 搜索 ========== */
+function onSearch() {
+    renderFiltered();
+}
+
+/* ========== 排序 ========== */
+function switchSort(sort) {
+    if (currentSort === sort) return;
+    currentSort = sort;
+    el('sortNewest').classList.toggle('active', sort === 'newest');
+    el('sortHottest').classList.toggle('active', sort === 'mostLiked');
+    renderFiltered();
+}
+
+/* ========== 获取筛选后的方案 ========== */
+function getFilteredSchemes() {
+    let filtered = [...allSchemes];
+    const q = (el('searchInput').value || '').toLowerCase().trim();
+
+    // 分类筛选
+    if (currentCategory !== 'all') {
+        filtered = filtered.filter(s => s.category === currentCategory);
+    }
+
+    // 搜索（标题/描述模糊匹配）
+    if (q) {
+        filtered = filtered.filter(s => {
+            const title = (s.title || '').toLowerCase();
+            const desc = (s.description || '').toLowerCase();
+            return title.includes(q) || desc.includes(q);
+        });
+    }
+
+    // 排序
+    if (currentSort === 'mostLiked') {
+        filtered.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+    } else {
+        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    }
+
+    return filtered;
+}
+
+/* ========== 渲染卡片 ========== */
+function renderFiltered() {
+    const filtered = getFilteredSchemes();
+    el('resultCount').textContent = filtered.length ? `共 ${filtered.length} 个方案` : '';
+
     const grid = el('cardGrid');
     grid.innerHTML = '';
 
-    if (!users || users.length === 0) {
+    if (!filtered || filtered.length === 0) {
         el('emptyState').style.display = 'flex';
-        el('userCount').textContent = '';
+        if (currentCategory !== 'all' || (el('searchInput').value || '').trim()) {
+            el('emptyState').querySelector('.empty-icon').textContent = '🔍';
+            el('emptyState').querySelector('.empty-title').textContent = '未找到匹配的方案';
+            el('emptyState').querySelector('.empty-desc').textContent = '试试换个分类或搜索关键词';
+        } else {
+            el('emptyState').querySelector('.empty-icon').textContent = '🏕️';
+            el('emptyState').querySelector('.empty-title').textContent = '还没有公开方案';
+            el('emptyState').querySelector('.empty-desc').textContent = '去贴词吧创作一个方案并公开分享，成为第一位摊主吧～';
+        }
         return;
     }
 
     el('emptyState').style.display = 'none';
-    el('userCount').textContent = `共 ${users.length} 位摊主`;
 
-    users.forEach(user => {
+    filtered.forEach(scheme => {
+        const profile = profileMap[scheme.owner_id] || {};
+        const displayName = profile.display_name || '匿名用户';
+        const avatarUrl = profile.avatar_url || null;
+        const initial = displayName.charAt(0).toUpperCase();
+        const cat = CAT_MAP[scheme.category] || CAT_MAP['其他提示词'];
+
         const card = document.createElement('div');
-        card.className = 'user-card';
-        card.onclick = () => {
-            window.location.href = `u.html?user=${encodeURIComponent(user.display_name || '')}`;
+        card.className = 'scheme-card';
+        card.onclick = (e) => {
+            // Don't navigate if author was clicked
+            if (e.target.closest('.scheme-author')) return;
+            window.location.href = `scheme.html?id=${scheme.id}`;
         };
 
-        const displayName = user.display_name || '匿名用户';
-        const initial = displayName.charAt(0).toUpperCase();
-        const avatarUrl = user.avatar_url || null;
-        const bio = user.bio || '';
-
+        // Author avatar
         let avatarHTML;
         if (avatarUrl) {
-            avatarHTML = `<img class="user-card-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span class="user-card-avatar-placeholder" style="display:none;">${initial}</span>`;
+            avatarHTML = `<img class="author-mini-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">` +
+                         `<span class="author-mini-avatar-placeholder" style="display:none;">${initial}</span>`;
         } else {
-            avatarHTML = `<span class="user-card-avatar-placeholder">${initial}</span>`;
+            avatarHTML = `<span class="author-mini-avatar-placeholder">${initial}</span>`;
         }
 
         card.innerHTML = `
-            ${avatarHTML}
-            <div class="user-card-name">${escapeHtml(displayName)}</div>
-            <div class="user-card-bio">${escapeHtml(bio)}</div>
-            <div class="user-card-stats">
-                <span class="user-card-stat">
-                    <span class="user-card-stat-icon">📋</span> ${user.schemeCount || 0} 套方案
+            <div class="scheme-card-title">${escapeHtml(scheme.title || '无标题方案')}</div>
+            <div class="scheme-card-desc">${escapeHtml(scheme.description || '暂无描述')}</div>
+            <div class="scheme-card-badge-row">
+                <span class="scheme-card-badge" style="background:${cat.bg};color:${cat.color};">
+                    ${cat.icon} ${cat.key}
                 </span>
-                <span class="user-card-stat">
-                    <span class="user-card-stat-icon">❤️</span> ${user.totalLikes || 0}
-                </span>
+            </div>
+            <div class="scheme-card-footer">
+                <a class="scheme-author" href="u.html?user=${encodeURIComponent(displayName)}" onclick="event.stopPropagation();" title="${escapeHtml(displayName)}">
+                    ${avatarHTML}
+                    <span class="author-name">${escapeHtml(displayName)}</span>
+                </a>
+                <div class="scheme-stats">
+                    <span class="scheme-stat">⭐ ${scheme.like_count || 0}</span>
+                    <span class="scheme-stat">💬 ${scheme.comment_count || 0}</span>
+                </div>
             </div>
         `;
         grid.appendChild(card);
     });
 }
 
-/* ========== HTML 转义 ========== */
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-/* ========== 加载摊主 ========== */
-async function loadUsers() {
+/* ========== 加载方案 ========== */
+async function loadSchemes() {
     el('loadingState').style.display = 'flex';
     el('emptyState').style.display = 'none';
     el('cardGrid').innerHTML = '';
 
-    // 1. 查询所有公开方案，用于按 owner_id 聚合
+    // 1. 查询 public_schemes
     const { data: schemes, error: schemesError } = await supa
         .from('public_schemes')
-        .select('owner_id,like_count,created_at')
+        .select('id,owner_id,title,description,category,like_count,comment_count,created_at')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(500);
 
     if (schemesError) {
         el('loadingState').style.display = 'none';
         console.error('加载方案失败:', schemesError);
         el('emptyState').style.display = 'flex';
+        el('emptyState').querySelector('.empty-icon').textContent = '⚠️';
         el('emptyState').querySelector('.empty-title').textContent = '加载失败';
         el('emptyState').querySelector('.empty-desc').textContent = '请检查网络后刷新重试';
         return;
@@ -828,91 +901,24 @@ async function loadUsers() {
         return;
     }
 
-    // 2. 在 JS 里按 owner_id 分组聚合
-    const ownerMap = {};
-    schemes.forEach(s => {
-        if (!s.owner_id) return;
-        if (!ownerMap[s.owner_id]) {
-            ownerMap[s.owner_id] = {
-                owner_id: s.owner_id,
-                schemeCount: 0,
-                totalLikes: 0,
-                latestCreatedAt: s.created_at
-            };
+    allSchemes = schemes;
+
+    // 2. 查询所有涉及的 user_profiles
+    const ownerIds = [...new Set(schemes.map(s => s.owner_id).filter(Boolean))];
+    if (ownerIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supa
+            .from('user_profiles')
+            .select('id,display_name,avatar_url')
+            .in('id', ownerIds);
+
+        if (!profilesError && profiles) {
+            profileMap = {};
+            profiles.forEach(p => { profileMap[p.id] = p; });
         }
-        ownerMap[s.owner_id].schemeCount++;
-        ownerMap[s.owner_id].totalLikes += (s.like_count || 0);
-        if (s.created_at > ownerMap[s.owner_id].latestCreatedAt) {
-            ownerMap[s.owner_id].latestCreatedAt = s.created_at;
-        }
-    });
-
-    const ownerIds = Object.keys(ownerMap);
-    if (ownerIds.length === 0) {
-        el('loadingState').style.display = 'none';
-        el('emptyState').style.display = 'flex';
-        return;
     }
-
-    // 3. 查询 user_profiles
-    const { data: profiles, error: profilesError } = await supa
-        .from('user_profiles')
-        .select('*')
-        .in('id', ownerIds);
-
-    if (profilesError) {
-        el('loadingState').style.display = 'none';
-        console.error('加载用户信息失败:', profilesError);
-        el('emptyState').style.display = 'flex';
-        el('emptyState').querySelector('.empty-title').textContent = '加载失败';
-        el('emptyState').querySelector('.empty-desc').textContent = '请检查网络后刷新重试';
-        return;
-    }
-
-    // 4. JOIN 数据
-    const profileMap = {};
-    (profiles || []).forEach(p => {
-        profileMap[p.id] = p;
-    });
-
-    allUsers = ownerIds.map(id => {
-        const agg = ownerMap[id];
-        const profile = profileMap[id] || {};
-        return {
-            owner_id: id,
-            display_name: profile.display_name || '匿名用户',
-            avatar_url: profile.avatar_url || null,
-            bio: profile.bio || '',
-            schemeCount: agg.schemeCount,
-            totalLikes: agg.totalLikes,
-            latestCreatedAt: agg.latestCreatedAt
-        };
-    });
-
-    // 5. 排序
-    sortUsers();
 
     el('loadingState').style.display = 'none';
-    renderUsers(allUsers);
-}
-
-/* ========== 排序 ========== */
-function sortUsers() {
-    if (currentSort === 'mostLiked') {
-        allUsers.sort((a, b) => (b.totalLikes || 0) - (a.totalLikes || 0));
-    } else {
-        allUsers.sort((a, b) => new Date(b.latestCreatedAt || 0) - new Date(a.latestCreatedAt || 0));
-    }
-}
-
-/* ========== 排序切换 ========== */
-function switchSort(sort) {
-    if (currentSort === sort) return;
-    currentSort = sort;
-    el('sortNewest').classList.toggle('active', sort === 'newest');
-    el('sortHottest').classList.toggle('active', sort === 'mostLiked');
-    sortUsers();
-    renderUsers(allUsers);
+    renderFiltered();
 }
 
 /* ========== 认证状态刷新 ========== */
@@ -1052,6 +1058,9 @@ el('authModal').addEventListener('click', (e) => {
 
 /* ========== 初始化 ========== */
 async function init() {
+    // 构建分类标签
+    buildCategoryPills();
+
     // 检查登录状态
     await refreshAuthUI();
 
@@ -1063,8 +1072,8 @@ async function init() {
         }
     });
 
-    // 加载摊主
-    loadUsers();
+    // 加载方案
+    loadSchemes();
 }
 
 window.addEventListener('load', init);

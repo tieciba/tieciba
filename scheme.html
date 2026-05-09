@@ -124,6 +124,18 @@
             word-break: break-word;
         }
 
+        /* Category Badge */
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 8px 0;
+            font-weight: 500;
+        }
+
         /* Image Carousel */
         .carousel-wrap {
             position: relative;
@@ -687,6 +699,9 @@
             <!-- Title -->
             <h1 class="scheme-title" id="schemeTitle"></h1>
 
+            <!-- Category Badge -->
+            <span class="category-badge" id="categoryBadge" style="display:none"></span>
+
             <!-- Description -->
             <div class="scheme-desc" id="schemeDesc"></div>
 
@@ -763,6 +778,20 @@
 const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbG...3cvc';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ========== 分类定义 ========== */
+const CATEGORIES = [
+    { key: 'all',            label: '全部',           icon: '🏷️', color: '#007aff', bg: '#e8f4ff' },
+    { key: '图生图提示词',   label: '🔄 图生图提示词', icon: '🔄', color: '#FF6B6B', bg: '#FFF0F0' },
+    { key: '文生图提示词',   label: '📝 文生图提示词', icon: '📝', color: '#4ECDC4', bg: '#F0FFFE' },
+    { key: '首尾帧提示词',   label: '🎬 首尾帧提示词', icon: '🎬', color: '#FFD93D', bg: '#FFFEF0' },
+    { key: '洗图提示词',     label: '🧹 洗图提示词',   icon: '🧹', color: '#6C5CE7', bg: '#F5F0FF' },
+    { key: '图片优化提示词', label: '✨ 图片优化提示词', icon: '✨', color: '#A8E6CF', bg: '#F0FFF5' },
+    { key: 'AI任务提示词',   label: '🤖 AI任务提示词', icon: '🤖', color: '#FF8B94', bg: '#FFF5F5' },
+    { key: '其他提示词',     label: '📌 其他提示词',   icon: '📌', color: '#B8B8B8', bg: '#F5F5F5' }
+];
+const CAT_MAP = {};
+CATEGORIES.forEach(c => { CAT_MAP[c.key] = c; });
 
 /* ========== 全局状态 ========== */
 let currentScheme = null;
@@ -1204,6 +1233,19 @@ async function init() {
 function renderScheme(data) {
     $('#schemeTitle').textContent = data.title || '未命名方案';
     $('#schemeDesc').textContent = data.description || '';
+
+    // 分类 badge
+    const badge = $('#categoryBadge');
+    if (data.category && CAT_MAP[data.category]) {
+        const cat = CAT_MAP[data.category];
+        badge.style.display = 'inline-flex';
+        badge.style.background = cat.bg;
+        badge.style.color = cat.color;
+        badge.style.border = '1px solid ' + cat.color + '33';
+        badge.textContent = cat.label;
+    } else {
+        badge.style.display = 'none';
+    }
 
     // 时间
     if (data.created_at) {
