@@ -789,24 +789,32 @@
     .import-btn-cancel { background: #f0f0f0; color: #333; }
     .import-btn-overwrite { background: #ff9500; color: white; }
 
+    /* 工具条（搜索+保存状态） */
+    .util-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 16px;
+        background: white;
+        border-bottom: 1px solid #eee;
+        gap: 12px;
+    }
     .card-search-input {
         padding: 6px 12px;
         border: 1px solid #e0e0e0;
         border-radius: 6px;
         font-size: 13px;
-        width: 160px;
+        width: 200px;
         outline: none;
         font-family: inherit;
         background: #f9f9f9;
-        transition: border-color 0.2s, width 0.2s;
-        display: none;
+        transition: border-color 0.2s;
     }
-    .card-search-input:focus { border-color: #007aff; width: 200px; background: white; }
+    .card-search-input:focus { border-color: #007aff; background: white; }
     .card-search-input::placeholder { color: #aaa; }
-    .card-search-input.show { display: inline-block; }
     @media (max-width: 480px) {
-        .card-search-input { width: 90px; font-size: 12px; padding: 5px 8px; }
-        .card-search-input:focus { width: 120px; }
+        .util-bar { padding: 5px 10px; gap: 8px; }
+        .card-search-input { width: 130px; font-size: 12px; padding: 5px 8px; }
     }
     /* 探索图标按钮 */
     .nav-explore-icon {
@@ -841,14 +849,18 @@
             <span class="brand-state brand-state-2">贴糍粑</span>
             <span class="brand-state brand-state-3"><img src="monster.gif" alt="贴词吧" onerror="this.parentElement.style.display='none'"></span>
         </div>
-        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="搜索卡片…" oninput="filterCards()">
-        <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
         <div class="auth-area" id="authArea">
             <span class="tier-badge" id="tierBadge">试吃杯 · 32卡 / 1方案</span>
             <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️ 兑换邀请码</button>
             <a href="/explore.html" class="nav-explore-icon" title="探索糍粑摊">🏪</a>
             <button id="loginBtn" onclick="openAuthModal('login')">登录 / 注册</button>
         </div>
+    </div>
+
+    <!-- 工具条 -->
+    <div class="util-bar">
+        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="搜索卡片…" oninput="filterCards()">
+        <span class="save-status" id="saveStatus" onclick="forceSave()" data-tip="点击强制保存"></span>
     </div>
 
     <!-- 首次访问引导 -->
@@ -1960,7 +1972,6 @@
             for (let i = 1; i <= 100; i++) localStorage.removeItem(`scheme${i}`);
             renderGrid();
             renderSchemeTabs();
-            el('cardSearchInput').classList.add('show');
             refreshTierBadge();
             applySchemeData(null); // 显式清空 UI
             showToast('已退出');
@@ -1988,7 +1999,6 @@
             }
             renderGrid();
             renderSchemeTabs();
-            el('cardSearchInput').classList.add('show');
             refreshTierBadge();
             el('schemeSelect').value = n;
             updateGraceBanner();
@@ -2126,7 +2136,6 @@
             }
             renderGrid();
             renderSchemeTabs();
-            el('cardSearchInput').classList.add('show');
             refreshTierBadge();
             applySchemeData(imp.schemeData);
             updateGraceBanner();
