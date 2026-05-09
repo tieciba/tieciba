@@ -704,6 +704,7 @@ const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let currentSort = 'newest'; // 'newest' | 'mostLiked'
 let authMode = 'login'; // 'login' | 'register'
+let allUsers = [];
 
 /* ========== 工具函数 ========== */
 function el(id) { return document.getElementById(id); }
@@ -895,7 +896,14 @@ async function loadUsers() {
     renderUsers(allUsers);
 }
 
-// Sorting handled by Supabase query order
+/* ========== 排序 ========== */
+function sortUsers() {
+    if (currentSort === 'mostLiked') {
+        allUsers.sort((a, b) => (b.totalLikes || 0) - (a.totalLikes || 0));
+    } else {
+        allUsers.sort((a, b) => new Date(b.latestCreatedAt || 0) - new Date(a.latestCreatedAt || 0));
+    }
+}
 
 /* ========== 排序切换 ========== */
 function switchSort(sort) {
