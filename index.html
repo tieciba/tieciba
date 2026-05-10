@@ -2177,6 +2177,7 @@
         function showImportConfirmModal(imp) {
             console.log('[导入弹窗] 显示, imp.title:', imp?.title, '| schemeData:', typeof imp?.schemeData);
             pendingImportData = imp;
+            console.log('[导入弹窗] pendingImportData已设置:', !!pendingImportData, '| title:', pendingImportData?.title);
             // 检查重复导入
             const existingIds = [];
             for (let i = 0; i < localStorage.length; i++) {
@@ -2282,10 +2283,10 @@
         }
 
         function closeImportConfirm() {
-            el('importConfirmModal').classList.remove('show');
+            el('importConfirmModal').classList.remove('show'); console.log('[导入] STEP2: 弹窗已关闭');
             el('importSchemeSelectWrap').style.display = 'none';
             // 用户取消导入，清理 pendingImport
-            localStorage.removeItem('pendingImport');
+            localStorage.removeItem('pendingImport'); console.log('[导入] STEP1: pendingImport已移除');
             pendingImportData = null;
             // 继续正常加载
             if (currentScheme) loadScheme();
@@ -2321,12 +2322,12 @@
                 impId = parseInt(chosenScheme, 10); // 导入到指定方案
             }
             const cfg = tierConfig();
-            console.log('[导入] impId:', impId, '| cfg.cards:', cfg.cards, '| imp.cardCount:', imp.cardCount);
+            console.log('[导入] STEP3: cfg=', JSON.stringify(cfg));('[导入] impId:', impId, '| cfg.cards:', cfg.cards, '| imp.cardCount:', imp.cardCount);
             localStorage.setItem(`imported_${impId}`, JSON.stringify({
                 source: imp.source, title: imp.title,
                 cardCount: imp.cardCount, importedAt: imp.importedAt,
                 schemeData: imp.schemeData
-            }));
+            })); console.log('[导入] STEP4: imported_'+impId+'已保存');
             
             if (imp.cardCount <= cfg.cards) {
                 currentScheme = impId;
@@ -2338,7 +2339,7 @@
                 localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
                 showToast(`✅ "${imp.title}"已导入（24h试用，超限卡片只读）`);
             }
-            localStorage.setItem('lastScheme', impId);
+            localStorage.setItem('lastScheme', impId); console.log('[导入] STEP6: lastScheme=', impId);
             console.log('[导入] 已保存到 localStorage, 开始渲染...');
             renderGrid();
             console.log('[导入] renderGrid完成, 开始applySchemeData...');
@@ -2417,24 +2418,49 @@
         window.addEventListener('load', init);
     </script>
     <script>
-        // 🔒 安全兜底：确保导入弹窗事件始终绑定（即使主脚本崩溃）
-        // 版本: 2026-05-10-v3
-        console.log('[贴词吧] 弹窗安全绑定 v3 已加载');
+        // 🔒 安全兜底 v4：自己完成导入，不依赖主脚本（Chrome增量解析兼容）
+        console.log('[贴词吧] 安全兜底 v4 已加载');
         (function rebindModal() {
             var modal = document.getElementById('importConfirmModal');
             if (!modal) return;
             
-            // 兜底函数：如果主脚本没定义，就用最小实现
+            // 兜底关闭函数
             var _close = (typeof closeImportConfirm === 'function') ? closeImportConfirm : function() {
                 modal.classList.remove('show');
                 var wrap = document.getElementById('importSchemeSelectWrap');
                 if (wrap) wrap.style.display = 'none';
                 try { localStorage.removeItem('pendingImport'); } catch(e) {}
             };
-            var _confirm = (typeof confirmImport === 'function') ? confirmImport : function(ow) {
-                // 最小实现：直接关闭弹窗（实际导入依赖 localStorage 中的 pendingImport）
-                _close();
+            
+            // 🔑 兜底导入函数：完全自主执行导入
+            var _confirm = (typeof confirmImport === 'function') ? confirmImport : function(overwriteId) {
+                try {
+                    var raw = localStorage.getItem('pendingImport');
+                    if (!raw) { _close(); return; }
+                    var imp = JSON.parse(raw);
+                    var sel = document.getElementById('importSchemeSelect');
+                    var chosen = sel ? sel.value : '1';
+                    var impId = overwriteId || (chosen === 'temp' ? 900 + (Date.now() % 100) : parseInt(chosen, 10));
+                    
+                    // 保存数据
+                    localStorage.setItem('imported_' + impId, JSON.stringify({
+                        source: imp.source, title: imp.title,
+                        cardCount: imp.cardCount, importedAt: imp.importedAt,
+                        schemeData: imp.schemeData
+                    }));
+                    localStorage.setItem('scheme' + impId, JSON.stringify(imp.schemeData));
+                    localStorage.setItem('lastScheme', impId);
+                    localStorage.removeItem('pendingImport');
+                    
+                    _close();
+                    // 强制刷新让主脚本加载新数据
+                    location.reload();
+                } catch(e) {
+                    console.error('[安全兜底] 导入失败:', e);
+                    _close();
+                }
             };
+            
             var _onChange = (typeof onImportSchemeChange === 'function') ? onImportSchemeChange : function() {};
             
             modal.addEventListener('click', function(e) {
