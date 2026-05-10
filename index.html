@@ -1016,10 +1016,16 @@
     <script>
         /* ========== Supabase 配置 ========== */
         const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
+        const SUPABASE_ANON_KEY = 'sb_publishable_wWzHA_tkjquLLLa42OY6xQ_6JjzQzGt';
         let supa = null;
         if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
-            try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.error('Supabase init error:', e); supa = null; }
+            try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: false
+                }
+            }); } catch(e) { console.error('Supabase init error:', e); supa = null; }
         } else {
             console.error('Supabase 库未加载: typeof supabase=' + typeof supabase + ' loaded=' + window.__SUPABASE_SCRIPT_DONE__ + ' error=' + window.__SUPABASE_LOAD_ERROR__);
         }
