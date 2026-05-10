@@ -39,7 +39,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
             padding: 20px;
             padding-top: 70px; /* 顶部留给 top-bar */
-            padding-bottom: 320px; /* 底部留给汇总区 */
+            padding-bottom: 100px; /* 底部留给汇总区（支持折叠） */
             background: #f5f5f5;
             transition: background-color 0.3s;
         }
@@ -273,8 +273,33 @@
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
             padding: 15px 20px;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            max-height: 70vh;
+            overflow-y: auto;
         }
         .summary-section h2 { font-size: 16px; margin-bottom: 10px; color: #333; }
+
+        /* 收起状态（桌面+手机通用） */
+        .summary-section.collapsed {
+            max-height: 60px;
+            overflow: hidden;
+            padding: 10px 20px;
+        }
+        .summary-section.collapsed .scheme-tabs,
+        .summary-section.collapsed .summary-top-row > .summary-left > h2,
+        .summary-section.collapsed .summary-top-row > .summary-left > .summary-controls > .toggle-column,
+        .summary-section.collapsed .color-filter-panel {
+            display: none;
+        }
+        .summary-section.collapsed .summary-top-row { margin-bottom: 0; }
+        .summary-section.collapsed .summary-controls { margin-bottom: 0; }
+        .summary-section.collapsed #summaryBox {
+            height: 32px;
+            font-size: 12px;
+            padding: 6px 10px;
+            line-height: 1.4;
+            resize: none;
+        }
 
         /* 方案切换区域 */
         .scheme-tabs {
@@ -422,8 +447,8 @@
         .btn-save.dirty { background: #ff9500; }
         .btn-save.dirty:hover { background: #e68600; }
         .btn-save.saving { background: #007aff; cursor: wait; pointer-events: none; }
-        /* 展开/收起按钮：桌面端隐藏，仅手机显示 */
-        .btn-toggle-panel { display: none; background: #6c757d; color: white; }
+        /* 展开/收起按钮：桌面端和手机端都显示 */
+        .btn-toggle-panel { display: inline-flex; align-items: center; justify-content: center; background: #6c757d; color: white; padding: 6px 12px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
         .btn-toggle-panel:hover { background: #5a6268; }
 
         /* 方案下拉框 */
@@ -723,24 +748,13 @@
                 overflow: hidden;
                 padding: 8px 12px;
             }
-            .summary-section.collapsed .scheme-tabs,
-            .summary-section.collapsed .summary-top-row > .summary-left > h2,
-            .summary-section.collapsed .summary-top-row > .summary-left > .summary-controls > .toggle-column,
-            .summary-section.collapsed .color-filter-panel {
-                display: none;
-            }
             .summary-section.collapsed .summary-top-row { margin-bottom: 6px; }
-            .summary-section.collapsed .summary-controls { margin-bottom: 0; }
             .summary-section.collapsed #summaryBox {
                 height: 38px;
                 font-size: 12px;
                 padding: 6px 8px;
-                line-height: 1.4;
             }
-            /* 展开/收起按钮：仅手机显示 */
-            .btn-toggle-panel { display: inline-flex; align-items: center; justify-content: center; }
-
-            /* 方案 tabs 与控制按钮：上下结构、4 列等宽 */
+            /* 按钮 */
             .scheme-tabs { flex-direction: column; align-items: stretch; gap: 10px; flex-wrap: nowrap; }
             .scheme-tabs-list { max-width: 100%; }
             .scheme-controls {
@@ -783,7 +797,6 @@
                 padding: 9px 4px; font-size: 12px;
                 text-align: center; text-align-last: center;
             }
-            .btn-toggle-panel { display: inline-flex; align-items: center; justify-content: center; }
             .toggle-column {
                 grid-column: 1 / -1;
                 flex-direction: row;
