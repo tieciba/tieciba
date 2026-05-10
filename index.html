@@ -1622,6 +1622,7 @@
         }
 
         function applySchemeData(data) {
+            console.log('[applySchemeData] 被调用, data类型:', typeof data, '| inputs数:', data?.inputs?.length);
             const total = getEffectiveCardLimit();
             // 先全部清空
             for (let i = 1; i <= total; i++) {
@@ -2174,6 +2175,7 @@
         var pendingImportData = null;
 
         function showImportConfirmModal(imp) {
+            console.log('[导入弹窗] 显示, imp.title:', imp?.title, '| schemeData:', typeof imp?.schemeData);
             pendingImportData = imp;
             // 检查重复导入
             const existingIds = [];
@@ -2290,8 +2292,9 @@
         }
 
         async function confirmImport(overwriteId) {
-            if (!pendingImportData) return;
+            if (!pendingImportData) { console.warn('[导入] pendingImportData为空，退出'); return; }
             const imp = pendingImportData;
+            console.log('[导入] 开始导入:', imp.title, '| 卡片数:', imp.cardCount, '| schemeData类型:', typeof imp.schemeData);
             localStorage.removeItem('pendingImport');
             el('importConfirmModal').classList.remove('show');
 
@@ -2317,6 +2320,7 @@
                 impId = parseInt(chosenScheme, 10); // 导入到指定方案
             }
             const cfg = tierConfig();
+            console.log('[导入] impId:', impId, '| cfg.cards:', cfg.cards, '| imp.cardCount:', imp.cardCount);
             localStorage.setItem(`imported_${impId}`, JSON.stringify({
                 source: imp.source, title: imp.title,
                 cardCount: imp.cardCount, importedAt: imp.importedAt,
@@ -2334,10 +2338,13 @@
                 showToast(`✅ "${imp.title}"已导入（24h试用，超限卡片只读）`);
             }
             localStorage.setItem('lastScheme', impId);
+            console.log('[导入] 已保存到 localStorage, 开始渲染...');
             renderGrid();
+            console.log('[导入] renderGrid完成, 开始applySchemeData...');
             renderSchemeTabs();
             refreshTierBadge();
             applySchemeData(imp.schemeData);
+            console.log('[导入] applySchemeData完成');
             updateGraceBanner();
             pendingImportData = null;
         }
