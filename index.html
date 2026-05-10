@@ -1025,7 +1025,7 @@
         let currentTier = 'free';
         // 恢复上次活跃的方案号
         const savedScheme = parseInt(localStorage.getItem('lastScheme'));
-        let currentScheme = (savedScheme && savedScheme >= 900) ? savedScheme : 1;
+        let currentScheme = (savedScheme && !isNaN(savedScheme)) ? savedScheme : 1;
         let authMode = 'login'; // 'login' or 'register'
 
         /* ========== 工具函数 ========== */
