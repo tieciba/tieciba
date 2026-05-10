@@ -12,17 +12,29 @@
     <!-- Supabase: 多CDN回退，适配腾讯WAF代理 -->
     <script>
     (function loadSupabase(){
+        window.__SUPABASE_CALLBACKS__ = window.__SUPABASE_CALLBACKS__ || [];
         var urls = [
             'supabase.min.js',                                                      // 1. 本地（直连）
             'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js', // 2. jsdelivr
             'https://unpkg.com/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js'             // 3. unpkg
         ];
         var idx = 0;
+        function fireCallbacks(ok) {
+            window.__SUPABASE_LOADED__ = ok;
+            window.__SUPABASE_SCRIPT_DONE__ = true;
+            var cbs = window.__SUPABASE_CALLBACKS__;
+            while (cbs.length) cbs.shift()(ok);
+        }
         function tryNext() {
-            if (idx >= urls.length) { window.__SUPABASE_LOAD_ERROR__ = true; console.error('所有 Supabase CDN 加载失败'); return; }
+            if (idx >= urls.length) {
+                window.__SUPABASE_LOAD_ERROR__ = true;
+                console.error('所有 Supabase CDN 加载失败');
+                fireCallbacks(false);
+                return;
+            }
             var s = document.createElement('script');
             s.src = urls[idx++];
-            s.onload = function() { window.__SUPABASE_SCRIPT_DONE__ = true; };
+            s.onload = function() { fireCallbacks(true); };
             s.onerror = tryNext;
             document.head.appendChild(s);
         }
@@ -941,7 +953,7 @@
             <input type="email" id="authEmail" placeholder="邮箱" autocomplete="email">
             <input type="password" id="authPassword" placeholder="密码（至少 6 位）" autocomplete="current-password">
             <input type="text" id="authInviteCode" placeholder="邀请码（可选，凭码升中杯）" style="display:none">
-            <button id="authSubmitBtn" onclick="submitAuth()">登录</button>
+            <button id="authSubmitBtn" onclick="submitAuth()" disabled>连接中…</button>
             <div class="auth-error" id="authError"></div>
             <div class="auth-info" id="authInfo">登录后可享受云同步、跨设备恢复方案。</div>
         </div>
@@ -1018,16 +1030,36 @@
         const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_wWzHA_tkjquLLLa42OY6xQ_6JjzQzGt';
         let supa = null;
-        if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
-            try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                auth: {
-                    persistSession: true,
-                    autoRefreshToken: true,
-                    detectSessionInUrl: false
+
+        function initSupabase() {
+            if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
+                try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: true,
+                        detectSessionInUrl: false
+                    }
+                }); } catch(e) { console.error('Supabase init error:', e); supa = null; }
+                if (supa) {
+                    el('authSubmitBtn').disabled = false;
+                    el('authSubmitBtn').textContent = '登录';
+                } else {
+                    el('authSubmitBtn').textContent = '服务加载失败';
                 }
-            }); } catch(e) { console.error('Supabase init error:', e); supa = null; }
+            } else {
+                console.error('Supabase 库未加载: typeof=' + typeof supabase + ' loaded=' + window.__SUPABASE_SCRIPT_DONE__ + ' err=' + window.__SUPABASE_LOAD_ERROR__);
+                el('authSubmitBtn').textContent = '服务加载失败';
+            }
+        }
+
+        // Supabase 库可能已加载（回调已触发），也可能还在等待
+        if (window.__SUPABASE_LOADED__ !== undefined) {
+            initSupabase();
         } else {
-            console.error('Supabase 库未加载: typeof supabase=' + typeof supabase + ' loaded=' + window.__SUPABASE_SCRIPT_DONE__ + ' error=' + window.__SUPABASE_LOAD_ERROR__);
+            window.__SUPABASE_CALLBACKS__.push(function(ok) {
+                if (ok) initSupabase();
+                else el('authSubmitBtn').textContent = '服务加载失败';
+            });
         }
 
         /* ========== 会员层级配置 ========== */
@@ -1891,7 +1923,9 @@
             el('loginTab').classList.toggle('active', mode === 'login');
             el('registerTab').classList.toggle('active', mode === 'register');
             el('authInviteCode').style.display = (mode === 'register') ? 'block' : 'none';
-            el('authSubmitBtn').textContent = (mode === 'register') ? '注册' : '登录';
+            if (supa) {
+                el('authSubmitBtn').textContent = (mode === 'register') ? '注册' : '登录';
+            }
             el('authInfo').textContent = (mode === 'register')
                 ? '注册即开通小杯（48卡/3方案）。填邀请码可直接升级中杯（128卡/10方案）。'
                 : '登录后可享受云同步、跨设备恢复方案。';
