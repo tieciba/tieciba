@@ -219,21 +219,23 @@
         .color-block:hover { transform: scale(1.15); border-color: #333; }
         .color-block.selected { border-color: #007aff; border-width: 3px; }
 
-        /* 右侧色块过滤面板 */
-        .summary-top-row {
+        /* 中段：方案操作行+开关行，右边放色卡 */
+        .mid-section {
             display: flex;
             gap: 12px;
             margin-bottom: 10px;
             align-items: flex-start;
+            position: relative;
         }
-        .summary-left { flex: 1; min-width: 0; }
+        .mid-left { flex: 1; min-width: 0; padding-right: 160px; }
         .color-filter-panel {
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
             display: grid;
             grid-template-columns: repeat(6, 1fr);
             gap: 3px;
-            padding-top: 8px;
             width: 150px;
-            flex-shrink: 0;
+            align-content: start;
         }
         .filter-color-block {
             width: 100%;
@@ -285,12 +287,7 @@
             overflow: hidden;
             padding: 10px 20px;
         }
-        .summary-section.collapsed .scheme-controls,
-        .summary-section.collapsed .toggle-row,
-        .summary-section.collapsed .color-filter-panel {
-            display: none;
-        }
-        .summary-section.collapsed .summary-top-row { margin-bottom: 0; }
+        .summary-section.collapsed .mid-section { display: none; }
         .summary-section.collapsed .summary-controls { margin-bottom: 0; }
         .summary-section.collapsed #summaryBox {
             height: 60px;
@@ -419,7 +416,7 @@
             color: #333;
             cursor: pointer;
             font-weight: 500;
-            min-width: 80px;
+            min-width: 60px;
         }
         .scheme-select:hover { border-color: #007aff; }
         .scheme-select:focus { outline: none; border-color: #007aff; box-shadow: 0 0 0 2px rgba(0,122,255,0.15); }
@@ -701,12 +698,13 @@
                 transition: max-height 0.28s ease, padding 0.28s ease;
                 z-index: 1000;
             }
+            .summary-section.collapsed .mid-section { display: none; }
+            .summary-section.collapsed .summary-controls { margin-bottom: 0; }
             .summary-section.collapsed {
                 max-height: 105px;
                 overflow: hidden;
                 padding: 8px 12px;
             }
-            .summary-section.collapsed .summary-top-row { margin-bottom: 6px; }
             .summary-section.collapsed #summaryBox {
                 height: 38px;
                 font-size: 12px;
@@ -728,13 +726,13 @@
             }
             /* 交换两行顺序 */
             .summary-section { display: flex; flex-direction: column; }
-            .summary-top-row { order: 1; }
-
-            .summary-top-row { flex-direction: column; gap: 10px; }
-            /* 汇总结果隐藏 */
-            .summary-top-row h2 { display: none; }
-            /* 色块保持正方形 */
-            .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
+            .mid-section { order: 1; flex-direction: column; gap: 10px; }
+            .mid-left { padding-right: 0; }
+            /* 色块在手机端取消绝对定位，自然流 */
+            .color-filter-panel {
+                position: static; width: 100%;
+                grid-template-columns: repeat(9, 1fr);
+            }
             .filter-color-block { aspect-ratio: 1; min-height: 32px; }
             /* 色块选择器宽度自适应 */
             .color-blocks { width: auto; max-width: 200px; }
@@ -888,15 +886,15 @@
 
     <!-- 固定在底部的汇总区域 -->
     <div class="summary-section collapsed">
-        <div class="summary-top-row">
-            <div class="summary-left">
-                <div class="summary-controls">
-                    <button class="btn-copy" data-tip="复制汇总框全部内容到剪贴板（快捷键 Ctrl/Cmd+Enter）" onclick="copyToClipboard()">📋 <span class="lbl-full">复制全部</span><span class="lbl-short">复制</span></button>
-                    <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空</span><span class="lbl-short">清空</span></button>
-                    <button class="btn-save" id="btnSave" data-tip="手动保存当前方案到本地和云端" onclick="manualSave()">💾 <span class="lbl-full">保存</span><span class="lbl-short">保存</span></button>
-                    <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
-                    <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
-                </div>
+        <div class="summary-controls">
+            <button class="btn-copy" data-tip="复制汇总框全部内容到剪贴板（快捷键 Ctrl/Cmd+Enter）" onclick="copyToClipboard()">📋 <span class="lbl-full">复制全部</span><span class="lbl-short">复制</span></button>
+            <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空</span><span class="lbl-short">清空</span></button>
+            <button class="btn-save" id="btnSave" data-tip="手动保存当前方案到本地和云端" onclick="manualSave()">💾 <span class="lbl-full">保存</span><span class="lbl-short">保存</span></button>
+            <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
+            <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
+        </div>
+        <div class="mid-section">
+            <div class="mid-left">
                 <div class="scheme-controls">
                     <button data-tip="清空当前方案的所有卡片内容" onclick="clearCurrentScheme()">🔄 <span class="lbl-full">重置方案</span><span class="lbl-short">重置</span></button>
                     <button data-tip="生成分享链接，让其他人导入你的方案" onclick="shareCurrentScheme()">🔗 <span class="lbl-full">分享方案</span><span class="lbl-short">分享</span></button>
