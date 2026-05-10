@@ -2158,11 +2158,6 @@
 
         /* ========== 初始化 ========== */
         async function init() {
-            // 先把导入函数挂到 window，确保 try 内部出错也不会让按钮"点不动"
-            window.confirmImport = confirmImport;
-            window.closeImportConfirm = closeImportConfirm;
-            window.onImportSchemeChange = onImportSchemeChange;
-            window.saveTempToScheme = saveTempToScheme;
             // 先渲染卡片，再做事（保证页面不空白）
             renderGrid();
             renderSchemeTabs();
@@ -2420,6 +2415,10 @@
             } catch(e) { console.error('[导入] 异常:', e.message, e.stack); showToast('导入失败: ' + e.message); }
         }
         window.onImportSchemeChange = onImportSchemeChange;
+
+        window.confirmImport = confirmImport;
+        window.closeImportConfirm = closeImportConfirm;
+        window.saveTempToScheme = saveTempToScheme;
 
         // 事件委托：导入弹窗所有按钮和关闭图标（静态+动态均生效）
         (function bindModalEvents() {
