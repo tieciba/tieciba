@@ -1006,7 +1006,8 @@
         /* ========== Supabase 配置 ========== */
         const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
-        const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supa;
+        try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { supa = null; }
 
         /* ========== 会员层级配置 ========== */
         const TIERS = {
@@ -2066,7 +2067,7 @@
         }
 
         async function signOut() {
-            await supa.auth.signOut();
+            try { if (supa) await supa.auth.signOut(); } catch(e) {}
             currentUser = null;
             currentTier = 'free';
             currentScheme = 1;
@@ -2129,7 +2130,8 @@
             if (localStorage.getItem('newlineToggleState') === 'off') el('newlineToggle').classList.add('off');
 
             // 检查已有 session
-            const { data: { session } } = await supa.auth.getSession();
+            let session = null;
+            try { if (supa) { const r = await supa.auth.getSession(); session = r.data.session; } } catch(e) {}
             await onAuthChanged(session);
 
             // 处理待导入的分享方案 — 弹窗确认
@@ -2371,11 +2373,11 @@
         }
 
             // 监听 session 变化（自动刷新 token 等）
-            supa.auth.onAuthStateChange((event, session) => {
+            try { if (supa) { supa.auth.onAuthStateChange((event, session) => {
                 if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     onAuthChanged(session);
                 }
-            });
+            }); } } catch(e) {}
 
             // 键盘快捷键
             document.addEventListener('keydown', (e) => {
@@ -2406,27 +2408,39 @@
         window.addEventListener('load', init);
     </script>
     <script>
-        // 🔒 安全兜底：确保导入弹窗事件始终绑定（绕过 CDN 缓存问题）
-        // 版本: 2026-05-10-v2
-        console.log('[贴词吧] 弹窗安全绑定 v2 已加载');
+        // 🔒 安全兜底：确保导入弹窗事件始终绑定（即使主脚本崩溃）
+        // 版本: 2026-05-10-v3
+        console.log('[贴词吧] 弹窗安全绑定 v3 已加载');
         (function rebindModal() {
             var modal = document.getElementById('importConfirmModal');
             if (!modal) return;
+            
+            // 兜底函数：如果主脚本没定义，就用最小实现
+            var _close = (typeof closeImportConfirm === 'function') ? closeImportConfirm : function() {
+                modal.classList.remove('show');
+                var wrap = document.getElementById('importSchemeSelectWrap');
+                if (wrap) wrap.style.display = 'none';
+                try { localStorage.removeItem('pendingImport'); } catch(e) {}
+            };
+            var _confirm = (typeof confirmImport === 'function') ? confirmImport : function(ow) {
+                // 最小实现：直接关闭弹窗（实际导入依赖 localStorage 中的 pendingImport）
+                _close();
+            };
+            var _onChange = (typeof onImportSchemeChange === 'function') ? onImportSchemeChange : function() {};
+            
             modal.addEventListener('click', function(e) {
                 var el = e.target.closest('[data-action]');
                 if (!el) return;
                 var action = el.dataset.action;
-                if (action === 'cancel-import' && typeof closeImportConfirm === 'function') {
-                    closeImportConfirm();
-                } else if (action === 'confirm-import' && typeof confirmImport === 'function') {
+                if (action === 'cancel-import') {
+                    _close();
+                } else if (action === 'confirm-import') {
                     var ow = el.dataset.overwrite ? parseInt(el.dataset.overwrite, 10) : undefined;
-                    confirmImport(ow);
+                    _confirm(ow);
                 }
-            }, false);
+            });
             var sel = document.getElementById('importSchemeSelect');
-            if (sel && typeof onImportSchemeChange === 'function') {
-                sel.addEventListener('change', onImportSchemeChange);
-            }
+            if (sel) sel.addEventListener('change', _onChange);
         })();
     </script>
 </body>
