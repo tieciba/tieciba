@@ -2292,9 +2292,10 @@
         }
 
         async function confirmImport(overwriteId) {
+            try {
             if (!pendingImportData) { console.warn('[导入] pendingImportData为空，退出'); return; }
             const imp = pendingImportData;
-            console.log('[导入] 开始导入:', imp.title, '| 卡片数:', imp.cardCount, '| schemeData类型:', typeof imp.schemeData);
+            console.log('[导入] 开始导入:', imp.title, '| 卡片数:', imp.cardCount, '| schemeData类型:', typeof imp.schemeData, '| schemeData keys:', Object.keys(imp.schemeData||{}));
             localStorage.removeItem('pendingImport');
             el('importConfirmModal').classList.remove('show');
 
@@ -2347,6 +2348,7 @@
             console.log('[导入] applySchemeData完成');
             updateGraceBanner();
             pendingImportData = null;
+            } catch(e) { console.error('[导入] 异常:', e.message, e.stack); showToast('导入失败: ' + e.message); }
         }
 
         // 显式挂载到 window，确保 onclick 属性能访问
