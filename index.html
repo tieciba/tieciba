@@ -9,8 +9,8 @@
     <title>贴词吧 - 提示词汇总工具</title>
     <!-- 老浏览器兼容补丁（Chrome 81等） -->
     <script>!function(){try{[].at(-1)}catch(e){Array.prototype.at=function(n){return this[(n<0?this.length:n)+n]}};try{structuredClone(1)}catch(e){window.structuredClone=function(o){return JSON.parse(JSON.stringify(o))}};try{({}).hasOwn?0:Object.defineProperty(Object.prototype,'hasOwn',{value:function(k){return Object.prototype.hasOwnProperty.call(this,k)},configurable:!0,writable:!0})}catch(e){};try{'a'.replaceAll('a','b')}catch(e){String.prototype.replaceAll=function(s,r){return this.split(s).join(r)}};try{Promise.allSettled([])}catch(e){Promise.allSettled=function(ps){return Promise.all(ps.map(p=>Promise.resolve(p).then(v=>({status:'fulfilled',value:v}),r=>({status:'rejected',reason:r}))))}}}();</script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js"
-            onerror="console.error('Supabase CDN 加载失败');document.getElementById('loginBtn').textContent='服务暂不可用'"></script>
+    <script src="supabase.min.js" onerror="window.__SUPABASE_LOAD_ERROR__=true;console.error('supabase.min.js 加载失败')"></script>
+    <script>window.__SUPABASE_SCRIPT_DONE__=true;</script>
     <style>
         * {
             margin: 0;
@@ -1035,8 +1035,12 @@
         /* ========== Supabase 配置 ========== */
         const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
-        let supa;
-        try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { supa = null; }
+        let supa = null;
+        if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
+            try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.error('Supabase init error:', e); supa = null; }
+        } else {
+            console.error('Supabase 库未加载: typeof supabase=' + typeof supabase + ' loaded=' + window.__SUPABASE_SCRIPT_DONE__ + ' error=' + window.__SUPABASE_LOAD_ERROR__);
+        }
 
         /* ========== 会员层级配置 ========== */
         const TIERS = {
