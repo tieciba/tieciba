@@ -9,7 +9,8 @@
     <title>贴词吧 - 提示词汇总工具</title>
     <!-- 老浏览器兼容补丁（Chrome 81等） -->
     <script>!function(){try{[].at(-1)}catch(e){Array.prototype.at=function(n){return this[(n<0?this.length:n)+n]}};try{structuredClone(1)}catch(e){window.structuredClone=function(o){return JSON.parse(JSON.stringify(o))}};try{({}).hasOwn?0:Object.defineProperty(Object.prototype,'hasOwn',{value:function(k){return Object.prototype.hasOwnProperty.call(this,k)},configurable:!0,writable:!0})}catch(e){};try{'a'.replaceAll('a','b')}catch(e){String.prototype.replaceAll=function(s,r){return this.split(s).join(r)}};try{Promise.allSettled([])}catch(e){Promise.allSettled=function(ps){return Promise.all(ps.map(p=>Promise.resolve(p).then(v=>({status:'fulfilled',value:v}),r=>({status:'rejected',reason:r}))))}}}();</script>
-    <script src="supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.min.js"
+            onerror="console.error('Supabase CDN 加载失败');document.getElementById('loginBtn').textContent='服务暂不可用'"></script>
     <style>
         * {
             margin: 0;
@@ -1906,6 +1907,7 @@
 
         /* ========== 认证：登录 / 注册 ========== */
         async function submitAuth() {
+            if (!supa) { el('authError').textContent = '服务暂不可用，请刷新页面重试'; return; }
             const email = el('authEmail').value.trim();
             const password = el('authPassword').value;
             const inviteCode = el('authInviteCode').value.trim();
