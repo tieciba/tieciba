@@ -996,7 +996,7 @@
     <!-- 导入确认弹窗 -->
     <div class="share-modal" id="importConfirmModal">
         <div class="share-modal-content import-confirm-content">
-            <span class="modal-close" data-action="cancel-import">×</span>
+            <span class="modal-close" onclick="closeImportConfirm()">×</span>
             <h3>📥 导入方案</h3>
             <div class="scheme-preview" id="importPreview"></div>
             <div id="importWarning"></div>
@@ -2223,7 +2223,7 @@
             console.log('[导入弹窗] 显示, imp.title:', imp?.title, '| schemeData:', typeof imp?.schemeData);
             pendingImportData = imp;
             console.log('[导入弹窗] pendingImportData已设置:', !!pendingImportData, '| title:', pendingImportData?.title);
-            // 检查重复导入
+            // 检查重复导入（只检查 scheme 槽里还有数据的）
             const existingIds = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -2233,7 +2233,15 @@
                         if (!raw) continue;
                         const saved = JSON.parse(raw);
                         if (saved && String(saved.source) === String(imp.source)) {
-                            existingIds.push(parseInt(key.replace('imported_', '')));
+                            const id = parseInt(key.replace('imported_', ''));
+                            // 跳过已被清空的方案槽
+                            const schemeData = localStorage.getItem('scheme' + id);
+                            if (!schemeData) {
+                                // 清理孤立 imported_ 标记
+                                localStorage.removeItem(key);
+                                continue;
+                            }
+                            existingIds.push(id);
                         }
                     } catch (e) { /* 跳过损坏的数据 */ }
                 }
@@ -2298,11 +2306,11 @@
             const actions = el('importActions');
             if (!actions) return;
             const val = el('importSchemeSelect')?.value || '1';
-            let btns = '<button class="import-btn-cancel" data-action="cancel-import">取消</button>';
+            let btns = '<button class="import-btn-cancel" onclick="closeImportConfirm()">取消</button>';
             if (existingIds && existingIds.length > 0) {
-                btns += `<button class="import-btn-overwrite" data-action="confirm-import" data-overwrite="${existingIds[0]}">覆盖旧方案 #${existingIds[0]}</button>`;
+                btns += `<button class="import-btn-overwrite" onclick="confirmImport(${existingIds[0]})">覆盖旧方案 #${existingIds[0]}</button>`;
             }
-            btns += `<button class="import-btn-ok" data-action="confirm-import">${val === 'temp' ? '导入为临时方案' : '导入到该方案'}</button>`;
+            btns += `<button class="import-btn-ok" onclick="confirmImport()">${val === 'temp' ? '导入为临时方案' : '导入到该方案'}</button>`;
             actions.innerHTML = btns;
         }
 
