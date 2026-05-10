@@ -1150,10 +1150,14 @@
                 if (i === currentScheme) opt.selected = true;
                 sel.appendChild(opt);
             }
-            // 导入的方案（号码 900+）
+            // 导入的方案：仅列出超出本地方案范围的（已在 for 循环中的不重复）
+            const maxLocalSchemes = tierConfig().schemes;
             const importedIds = [];
             for (let k in localStorage) {
-                if (k.startsWith('imported_')) importedIds.push(parseInt(k.split('_')[1]));
+                if (k.startsWith('imported_')) {
+                    const id = parseInt(k.split('_')[1]);
+                    if (id > maxLocalSchemes) importedIds.push(id);
+                }
             }
             importedIds.sort((a,b) => a-b);
             if (importedIds.length > 0) {
