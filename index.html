@@ -2158,6 +2158,11 @@
 
         /* ========== 初始化 ========== */
         async function init() {
+            // 先把导入函数挂到 window，确保 try 内部出错也不会让按钮"点不动"
+            window.confirmImport = confirmImport;
+            window.closeImportConfirm = closeImportConfirm;
+            window.onImportSchemeChange = onImportSchemeChange;
+            window.saveTempToScheme = saveTempToScheme;
             // 先渲染卡片，再做事（保证页面不空白）
             renderGrid();
             renderSchemeTabs();
@@ -2234,14 +2239,18 @@
                         const saved = JSON.parse(raw);
                         if (saved && String(saved.source) === String(imp.source)) {
                             const id = parseInt(key.replace('imported_', ''));
-                            // 跳过已被清空的方案槽
-                            const schemeData = localStorage.getItem('scheme' + id);
-                            if (!schemeData) {
-                                // 清理孤立 imported_ 标记
+                            // 跳过已被清空方案槽（实际卡片数为 0）
+                            const schemeRaw = localStorage.getItem('scheme' + id);
+                            var hasCards = false;
+                            if (schemeRaw) {
+                                try { var d = JSON.parse(schemeRaw); hasCards = d?.inputs?.filter(function(c){return c.title||c.content;}).length > 0; } catch(e) {}
+                            }
+                            if (!hasCards) {
                                 localStorage.removeItem(key);
                                 continue;
                             }
                             existingIds.push(id);
+                            break; // 一个 source 只匹配一次就够了
                         }
                     } catch (e) { /* 跳过损坏的数据 */ }
                 }
@@ -2410,10 +2419,6 @@
             pendingImportData = null;
             } catch(e) { console.error('[导入] 异常:', e.message, e.stack); showToast('导入失败: ' + e.message); }
         }
-
-        // 显式挂载到 window，确保 onclick 属性能访问
-        window.confirmImport = confirmImport;
-        window.closeImportConfirm = closeImportConfirm;
         window.onImportSchemeChange = onImportSchemeChange;
 
         // 事件委托：导入弹窗所有按钮和关闭图标（静态+动态均生效）
