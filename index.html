@@ -151,7 +151,8 @@
             transition: background-color 0.3s;
             position: relative;
         }
-        .input-item input[type="text"] {
+        .input-item input[type="text"],
+        .input-item textarea.content {
             width: 100%;
             padding: 5px 6px;
             border: 1px solid #ddd;
@@ -251,7 +252,8 @@
             border-width: 3px;
             box-shadow: 0 0 8px rgba(0,122,255,0.5);
         }
-        .input-item input.content { font-size: 12px; }
+        .input-item input.content,
+        .input-item textarea.content { font-size: 12px; resize: vertical; }
         .input-item button:not(.color-picker-btn) {
             padding: 4px 8px;
             background: #007aff;
@@ -1136,7 +1138,7 @@
                                  data-color="${color}"></div>
                         `).join('')}
                     </div>
-                    <input type="text" class="content" placeholder="内容..." id="content${i}">
+                    <textarea class="content" placeholder="内容..." id="content${i}" rows="2"></textarea>
                     <button onclick="addToSummary(${i})">汇总</button>
                 `;
                 grid.appendChild(item);
