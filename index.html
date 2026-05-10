@@ -864,6 +864,15 @@
         <button class="intro-close" onclick="dismissIntro()">知道了</button>
     </div>
 
+    <!-- 宽限期倒计时横幅（临时方案） -->
+    <div class="grace-banner hide" id="graceBanner">
+        <span id="graceBannerText"></span>
+        <span style="display:flex;gap:8px;align-items:center;">
+            <button class="grace-upgrade" id="graceSaveBtn" onclick="saveTempToScheme()">💾 保存到方案</button>
+            <button class="grace-upgrade" onclick="openRedeemModal()">⬆ 升级</button>
+        </span>
+    </div>
+
     <div class="container">
         <div class="grid" id="inputGrid"></div>
         <div class="footer-info">
@@ -1073,8 +1082,31 @@
             if (remaining <= 0) { localStorage.removeItem(`grace_${currentScheme}`); banner.style.display = 'none'; renderGrid(); return; }
             const h = Math.floor(remaining / 3600000);
             const m = Math.floor((remaining % 3600000) / 60000);
-            banner.innerHTML = `⏳ 试用剩余 ${h}h${m}m · 超限卡片只读 · <a href=\"#\" onclick=\"openRedeemModal()\">升级</a>`;
+            var textEl = document.getElementById("graceBannerText");
+            if (textEl) textEl.textContent = "⏳ 临时方案剩余 " + h + "h" + m + "m，超限卡片将只读。";
             banner.style.display = '';
+        }
+
+        /* ========== 保存临时方案到其他方案 ========== */
+        function saveTempToScheme() {
+            if (currentScheme < 900) { showToast('当前不是临时方案'); return; }
+            var data = collectSchemeData();
+            var total = tierConfig().schemes;
+            // 找一个空的方案槽
+            var target = null;
+            for (var i = 1; i <= total; i++) {
+                var saved = localStorage.getItem('scheme' + i);
+                if (!saved) { target = i; break; }
+            }
+            if (!target) { showToast('所有方案都已占用，请先清空一个方案再保存'); return; }
+            localStorage.setItem('scheme' + target, JSON.stringify(data));
+            localStorage.removeItem('grace_' + currentScheme);
+            currentScheme = target;
+            renderGrid();
+            renderSchemeTabs();
+            refreshTierBadge();
+            updateGraceBanner();
+            showToast('✅ 已保存到方案 ' + target);
         }
 
         /* ========== 渲染：卡片网格 ========== */
@@ -1115,8 +1147,18 @@
                 el(`content${i}`).addEventListener('blur', saveOnBlur);
             }
 
-            // 末尾追加升级 CTA（最高层级 ultra 不显示）
-            if (currentTier !== 'ultra') {
+            // 末尾追加 CTA：临时方案显示"保存到方案"，否则显示升级
+            if (currentScheme >= 900) {
+                const cta = document.createElement('div');
+                cta.className = 'upgrade-cta';
+                cta.innerHTML = `
+                    <div class="upgrade-icon">💾</div>
+                    <div class="upgrade-title">保存到其他方案</div>
+                    <div class="upgrade-desc">把临时方案保存到空闲的方案槽</div>
+                `;
+                cta.onclick = saveTempToScheme;
+                grid.appendChild(cta);
+            } else if (currentTier !== 'ultra') {
                 const cta = document.createElement('div');
                 cta.className = 'upgrade-cta';
                 const tiers = ['free','basic','pro','max'];
@@ -2151,7 +2193,6 @@
                     updateGraceBanner();
                     // 再弹确认窗
                     showImportConfirmModal(imp);
-                    return;
                 } catch (e) {
                     console.error('导入分享弹窗失败：', e);
                     showToast('导入失败，请刷新后重试');
@@ -2160,7 +2201,7 @@
             }
 
             // 如果登录成功且有 pendingInviteCode，自动尝试兑换
-            if (session && currentTier === 'basic') {
+            if (session && currentTier === 'free') {
                 const pending = localStorage.getItem('pendingInviteCode');
                 if (pending) {
                     const result = await applyInviteCode(pending, session.user.id);
@@ -2300,6 +2341,12 @@
             try {
             if (!pendingImportData) { console.warn('[导入] pendingImportData为空，退出'); return; }
             const imp = pendingImportData;
+
+            // 归一化 scheme_data：数据库可能存的是纯数组或 {inputs, summary} 两种格式
+            let schemeData = imp.schemeData;
+            if (schemeData && typeof schemeData === 'object' && !schemeData.inputs && Array.isArray(schemeData)) {
+                schemeData = { inputs: schemeData, summary: '' };
+            }
             console.log('[导入] 开始导入:', imp.title, '| 卡片数:', imp.cardCount, '| schemeData类型:', typeof imp.schemeData, '| schemeData keys:', Object.keys(imp.schemeData||{}));
             localStorage.removeItem('pendingImport');
             el('importConfirmModal').classList.remove('show');
@@ -2332,15 +2379,15 @@
                 cardCount: imp.cardCount, importedAt: imp.importedAt,
                 schemeData: imp.schemeData
             })); console.log('[导入] STEP4: imported_'+impId+'已保存');
-            
+
             if (imp.cardCount <= cfg.cards) {
                 currentScheme = impId;
-                localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
+                localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(schemeData));
                 showToast(`✅ 已导入"${imp.title}"`);
             } else {
                 localStorage.setItem(`grace_${impId}`, imp.importedAt);
                 currentScheme = impId;
-                localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(imp.schemeData));
+                localStorage.setItem(`scheme${currentScheme}`, JSON.stringify(schemeData));
                 showToast(`✅ "${imp.title}"已导入（24h试用，超限卡片只读）`);
             }
             localStorage.setItem('lastScheme', impId); console.log('[导入] STEP6: lastScheme=', impId);
@@ -2349,7 +2396,7 @@
             console.log('[导入] renderGrid完成, 开始applySchemeData...');
             renderSchemeTabs();
             refreshTierBadge();
-            applySchemeData(imp.schemeData);
+            applySchemeData(schemeData);
             console.log('[导入] applySchemeData完成');
             updateGraceBanner();
             pendingImportData = null;
@@ -2386,7 +2433,13 @@
             return d.innerHTML;
         }
 
-            // 监听 session 变化（自动刷新 token 等）
+            } catch (e) {
+                console.error('初始化失败，尝试最小渲染：', e);
+                // 兜底：即使出错也渲染
+                try { renderGrid(); renderSchemeTabs(); } catch (_) {}
+            }
+
+            // 监听 session 变化（自动刷新 token 等）— 始终注册，不受导入弹窗影响
             try { if (supa) { supa.auth.onAuthStateChange((event, session) => {
                 if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     onAuthChanged(session);
@@ -2412,45 +2465,34 @@
             window.addEventListener('beforeunload', () => {
                 try { saveCurrentScheme(false); } catch (e) {}
             });
-            } catch (e) {
-                console.error('初始化失败，尝试最小渲染：', e);
-                // 兜底：即使出错也渲染
-                try { renderGrid(); renderSchemeTabs(); } catch (_) {}
-            }
         }
 
         window.addEventListener('load', init);
     </script>
     <script>
-        // 🔒 安全兜底 v5：调用时检查 confirmImport 是否可用（init 已跑完）
-        console.log('[贴词吧] 安全兜底 v5 已加载');
+        // 🔒 安全兜底 v5：兜底函数，仅在主脚本崩溃时介入
+        // 注意：不主动绑定 click 事件（第一段脚本已经绑了），避免双发
         (function rebindModal() {
             var modal = document.getElementById('importConfirmModal');
             if (!modal) return;
-            
-            // 兜底关闭函数
+
             var _close = (typeof closeImportConfirm === 'function') ? closeImportConfirm : function() {
                 modal.classList.remove('show');
                 var wrap = document.getElementById('importSchemeSelectWrap');
                 if (wrap) wrap.style.display = 'none';
                 try { localStorage.removeItem('pendingImport'); } catch(e) {}
             };
-            
-            // 🔑 调用时检查：主脚本可用则委托，不可用则硬兜底
+
             var _confirm = function(overwriteId) {
-                // 调用时检查 —— init() 此时已跑完，confirmImport 应该已定义
                 if (typeof confirmImport === 'function') {
                     return confirmImport(overwriteId);
                 }
-                // === 硬兜底：主脚本完全崩溃时自主完成导入 ===
                 try {
                     var raw = localStorage.getItem('pendingImport');
                     if (!raw) { _close(); return; }
                     var imp = JSON.parse(raw);
                     var sel = document.getElementById('importSchemeSelect');
-                    var chosen = sel ? sel.value : '1';
-                    var impId = overwriteId || (chosen === 'temp' ? 900 + (Date.now() % 100) : parseInt(chosen, 10));
-                    
+                    var impId = overwriteId || (sel && sel.value !== 'temp' ? parseInt(sel.value, 10) : 900 + (Date.now() % 100));
                     localStorage.setItem('imported_' + impId, JSON.stringify({
                         source: imp.source, title: imp.title,
                         cardCount: imp.cardCount, importedAt: imp.importedAt,
@@ -2459,7 +2501,6 @@
                     localStorage.setItem('scheme' + impId, JSON.stringify(imp.schemeData));
                     localStorage.setItem('lastScheme', impId);
                     localStorage.removeItem('pendingImport');
-                    
                     _close();
                     location.reload();
                 } catch(e) {
@@ -2467,19 +2508,8 @@
                     _close();
                 }
             };
-            
+
             var _onChange = (typeof onImportSchemeChange === 'function') ? onImportSchemeChange : function() {};
-            
-            modal.addEventListener('click', function(e) {
-                var el = e.target.closest('[data-action]');
-                if (!el) return;
-                var action = el.dataset.action;
-                if (action === 'cancel-import') { _close(); }
-                else if (action === 'confirm-import') {
-                    var ow = el.dataset.overwrite ? parseInt(el.dataset.overwrite, 10) : undefined;
-                    _confirm(ow);
-                }
-            });
             var sel = document.getElementById('importSchemeSelect');
             if (sel) sel.addEventListener('change', _onChange);
         })();
