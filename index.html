@@ -398,8 +398,8 @@
         .btn-clear { background: #ff3b30; color: white; }
         .btn-clear:hover { background: #d62d22; }
         /* 手动保存按钮：绿色=已保存，橙色=有未保存改动，蓝色=保存中 */
-        .btn-save { background: #34c759; color: white; transition: background 0.3s; }
-        .btn-save:hover { background: #2da84a; }
+        .btn-save { background: #6a1b9a; color: white; transition: background 0.3s; }
+        .btn-save:hover { background: #4a148c; }
         .btn-save.dirty { background: #ff9500; }
         .btn-save.dirty:hover { background: #e68600; }
         .btn-save.saving { background: #007aff; cursor: wait; pointer-events: none; }
@@ -746,7 +746,7 @@
             /* 汇总结果隐藏 */
             .summary-top-row h2 { display: none; }
             /* 色块保持正方形 */
-            .color-filter-panel { width: 100%; grid-template-columns: repeat(6, 1fr); }
+            .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
             .filter-color-block { aspect-ratio: 1; min-height: 32px; }
             /* 色块选择器宽度自适应 */
             .color-blocks { width: auto; max-width: 200px; }
@@ -919,8 +919,8 @@
                     <button class="btn-copy" data-tip="复制汇总框全部内容到剪贴板（快捷键 Ctrl/Cmd+Enter）" onclick="copyToClipboard()">📋 <span class="lbl-full">复制全部</span><span class="lbl-short">复制</span></button>
                     <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空</span><span class="lbl-short">清空</span></button>
                     <button class="btn-save" id="btnSave" data-tip="手动保存当前方案到本地和云端" onclick="manualSave()">💾 <span class="lbl-full">保存</span><span class="lbl-short">保存</span></button>
-                    <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
                     <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
+                    <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
                     <div class="toggle-column">
                         <div class="toggle-container">
                             <span class="toggle-label">标题汇总</span>
