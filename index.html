@@ -9,26 +9,7 @@
     <title>贴词吧 - 提示词汇总工具</title>
     <!-- 老浏览器兼容补丁 -->
     <script>!function(){try{[].at(-1)}catch(e){Array.prototype.at=function(n){return this[(n<0?this.length:n)+n]}};try{structuredClone(1)}catch(e){window.structuredClone=function(o){return JSON.parse(JSON.stringify(o))}};try{({}).hasOwn?0:Object.defineProperty(Object.prototype,'hasOwn',{value:function(k){return Object.prototype.hasOwnProperty.call(this,k)},configurable:!0,writable:!0})}catch(e){};try{'a'.replaceAll('a','b')}catch(e){String.prototype.replaceAll=function(s,r){return this.split(s).join(r)}};try{Promise.allSettled([])}catch(e){Promise.allSettled=function(ps){return Promise.all(ps.map(p=>Promise.resolve(p).then(v=>({status:'fulfilled',value:v}),r=>({status:'rejected',reason:r}))))}}}();</script>
-    <!-- Supabase: 多CDN回退，适配腾讯WAF代理 -->
-    <script>
-    (function loadSupabase(){
-        var urls = [
-            'supabase.min.js',
-            'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js',
-            'https://unpkg.com/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js'
-        ];
-        var idx = 0;
-        function tryNext() {
-            if (idx >= urls.length) { window.__SUPABASE_LOAD_ERROR__ = true; console.error('所有 Supabase CDN 加载失败'); return; }
-            var s = document.createElement('script');
-            s.src = urls[idx++];
-            s.onload = function() { window.__SUPABASE_SCRIPT_DONE__ = true; };
-            s.onerror = tryNext;
-            document.head.appendChild(s);
-        }
-        tryNext();
-    })();
-    </script>
+    <script src="supabase.min.js"></script>
     <style>
         :root {
             --bg-color: #f5f5f7;
@@ -689,12 +670,8 @@
     <script>
         const SUPABASE_URL = 'https://plnwkcdpzybbthuxfnmf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsbndrY2RwenliYnRodXhmbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzU5MDYsImV4cCI6MjA5MzgxMTkwNn0.yr9849QufCAkJ6zs-OCrQEjwDEs55rwQNpNi0d43cvc';
-        let supa = null;
-        if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
-            try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.error('Supabase init error:', e); supa = null; }
-        } else {
-            console.error('Supabase 库未加载: typeof=' + typeof supabase + ' loaded=' + window.__SUPABASE_SCRIPT_DONE__ + ' err=' + window.__SUPABASE_LOAD_ERROR__);
-        }
+        let supa;
+        try { supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { supa = null; }
 
         const TIERS = {
             free:  { name: '试吃杯', cards: 32,  schemes: 1 },
@@ -1218,7 +1195,6 @@
             el('authInfo').textContent = (mode === 'register') ? '注册即开通小杯（48卡/3方案）。填邀请码可直接升级中杯（128卡/10方案）。' : '登录后可享受云同步、跨设备恢复方案。';
         }
         async function submitAuth() {
-            if (!supa) { el('authError').textContent = '服务暂不可用，请刷新页面重试'; return; }
             const email = el('authEmail').value.trim(); const password = el('authPassword').value; const inviteCode = el('authInviteCode').value.trim();
             const errBox = el('authError'); errBox.textContent = '';
             if (!email || !password) { errBox.textContent = '邮箱和密码必填'; return; }
