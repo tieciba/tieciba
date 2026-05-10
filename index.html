@@ -9,8 +9,26 @@
     <title>贴词吧 - 提示词汇总工具</title>
     <!-- 老浏览器兼容补丁（Chrome 81等） -->
     <script>!function(){try{[].at(-1)}catch(e){Array.prototype.at=function(n){return this[(n<0?this.length:n)+n]}};try{structuredClone(1)}catch(e){window.structuredClone=function(o){return JSON.parse(JSON.stringify(o))}};try{({}).hasOwn?0:Object.defineProperty(Object.prototype,'hasOwn',{value:function(k){return Object.prototype.hasOwnProperty.call(this,k)},configurable:!0,writable:!0})}catch(e){};try{'a'.replaceAll('a','b')}catch(e){String.prototype.replaceAll=function(s,r){return this.split(s).join(r)}};try{Promise.allSettled([])}catch(e){Promise.allSettled=function(ps){return Promise.all(ps.map(p=>Promise.resolve(p).then(v=>({status:'fulfilled',value:v}),r=>({status:'rejected',reason:r}))))}}}();</script>
-    <script src="supabase.min.js" onerror="window.__SUPABASE_LOAD_ERROR__=true;console.error('supabase.min.js 加载失败')"></script>
-    <script>window.__SUPABASE_SCRIPT_DONE__=true;</script>
+    <!-- Supabase: 多CDN回退，适配腾讯WAF代理 -->
+    <script>
+    (function loadSupabase(){
+        var urls = [
+            'supabase.min.js',                                                      // 1. 本地（直连）
+            'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js', // 2. jsdelivr
+            'https://unpkg.com/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js'             // 3. unpkg
+        ];
+        var idx = 0;
+        function tryNext() {
+            if (idx >= urls.length) { window.__SUPABASE_LOAD_ERROR__ = true; console.error('所有 Supabase CDN 加载失败'); return; }
+            var s = document.createElement('script');
+            s.src = urls[idx++];
+            s.onload = function() { window.__SUPABASE_SCRIPT_DONE__ = true; };
+            s.onerror = tryNext;
+            document.head.appendChild(s);
+        }
+        tryNext();
+    })();
+    </script>
     <style>
         * {
             margin: 0;
