@@ -726,7 +726,7 @@
             .scheme-tabs-list { max-width: 100%; }
             .scheme-controls {
                 display: grid;
-                grid-template-columns: repeat(6, 1fr);
+                grid-template-columns: repeat(4, 1fr);
                 gap: 6px;
                 margin-left: 0;
                 width: 100%;
@@ -737,15 +737,34 @@
                 white-space: nowrap;
                 text-align: center;
             }
+            /* 交换两行顺序 */
+            .summary-section { display: flex; flex-direction: column; }
+            .scheme-tabs { order: 2; }
+            .summary-top-row { order: 1; }
+
             .summary-top-row { flex-direction: column; gap: 10px; }
-            .color-filter-panel { width: 100%; grid-template-columns: repeat(9, 1fr); }
-            /* 4 列等宽：复制 / 清空 / 保存 / 展开 */
+            /* 汇总结果隐藏 */
+            .summary-top-row h2 { display: none; }
+            /* 色块保持正方形 */
+            .color-filter-panel { width: 100%; grid-template-columns: repeat(6, 1fr); }
+            .filter-color-block { aspect-ratio: 1; min-height: 32px; }
+            /* 色块选择器宽度自适应 */
+            .color-blocks { width: auto; max-width: 200px; }
+            .color-block { aspect-ratio: 1; min-height: 24px; }
+
+            /* 5 列等宽：复制 / 清空 / 保存 / 展开 / 方案下拉（最右） */
             .summary-controls {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(5, 1fr);
                 gap: 8px 6px;
             }
             .summary-controls button { padding: 9px 4px; font-size: 12px; white-space: nowrap; }
+            .summary-controls .scheme-select {
+                width: 100%; min-width: 0;
+                padding: 9px 4px; font-size: 12px;
+                text-align: center; text-align-last: center;
+            }
+            .btn-toggle-panel { display: inline-flex; align-items: center; justify-content: center; }
             .toggle-column {
                 grid-column: 1 / -1;
                 flex-direction: row;
@@ -885,7 +904,6 @@
     <div class="summary-section collapsed">
         <div class="scheme-tabs">
             <div class="scheme-controls">
-                <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
                 <button data-tip="清空当前方案的所有卡片内容" onclick="clearCurrentScheme()">🔄 <span class="lbl-full">重置方案</span><span class="lbl-short">重置</span></button>
                 <button data-tip="生成分享链接，让其他人导入你的方案" onclick="shareCurrentScheme()">🔗 <span class="lbl-full">分享方案</span><span class="lbl-short">分享</span></button>
                 <button data-tip="把当前方案保存为 .txt 文件下载到本地" onclick="exportScheme()">📤 <span class="lbl-full">导出方案到本地</span><span class="lbl-short">导出</span></button>
@@ -902,6 +920,7 @@
                     <button class="btn-clear" data-tip="只清空汇总框，不影响卡片内容" onclick="clearSummary()">🗑️ <span class="lbl-full">清空</span><span class="lbl-short">清空</span></button>
                     <button class="btn-save" id="btnSave" data-tip="手动保存当前方案到本地和云端" onclick="manualSave()">💾 <span class="lbl-full">保存</span><span class="lbl-short">保存</span></button>
                     <button class="btn-toggle-panel" id="togglePanelBtn" onclick="toggleBottomPanel()">⬆ 展开</button>
+                    <select class="scheme-select" id="schemeSelect" onchange="switchScheme(parseInt(this.value, 10))" title="切换方案"></select>
                     <div class="toggle-column">
                         <div class="toggle-container">
                             <span class="toggle-label">标题汇总</span>
@@ -2217,7 +2236,7 @@
 
 
         /* ========== 导入确认弹窗 ========== */
-        var pendingImportData = null;
+        var pendingImportData;
 
         function showImportConfirmModal(imp) {
             console.log('[导入弹窗] 显示, imp.title:', imp?.title, '| schemeData:', typeof imp?.schemeData);
@@ -2351,6 +2370,10 @@
 
         async function confirmImport(overwriteId) {
             try {
+            if (!pendingImportData) {
+                // 兜底：从 localStorage 重新读取
+                try { var raw = localStorage.getItem('pendingImport'); if (raw) pendingImportData = JSON.parse(raw); } catch(e) {}
+            }
             if (!pendingImportData) { console.warn('[导入] pendingImportData为空，退出'); return; }
             const imp = pendingImportData;
 
