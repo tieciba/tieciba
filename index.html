@@ -1378,7 +1378,7 @@
 
         /* ========== 保存/加载（云 + 本地）========== */
         function collectSchemeData() {
-            const data = { inputs: [], summary: el('summaryBox').value };
+            const data = { inputs: [], summary: el('summaryBox').value, activeFilters: [] };
             const total = getEffectiveCardLimit();
             for (let i = 1; i <= total; i++) {
                 if (!el(`title${i}`)) continue;
@@ -1388,6 +1388,9 @@
                 const color = sel ? sel.dataset.color : '#ffffff';
                 data.inputs.push({ title, content, color });
             }
+            // 收集当前激活的颜色筛选
+            const activeBlocks = document.querySelectorAll('.filter-color-block.active');
+            data.activeFilters = Array.from(activeBlocks).map(b => b.dataset.color);
             return data;
         }
 
@@ -1725,6 +1728,8 @@
                 el(`item${i}`).querySelectorAll('.color-block').forEach(b => b.classList.remove('selected'));
             }
             el('summaryBox').value = '';
+            // 清空旧的筛选激活状态
+            document.querySelectorAll('.filter-color-block.active').forEach(b => b.classList.remove('active'));
             if (!data) return;
             (data.inputs || []).forEach((item, idx) => {
                 const i = idx + 1;
@@ -1742,6 +1747,16 @@
                 }
             });
             el('summaryBox').value = data.summary || '';
+            // 恢复颜色筛选激活状态
+            if (data.activeFilters && data.activeFilters.length > 0) {
+                const panel = el('colorFilterPanel');
+                if (panel) {
+                    data.activeFilters.forEach(color => {
+                        const block = panel.querySelector(`.filter-color-block[data-color="${color}"]`);
+                        if (block) block.classList.add('active');
+                    });
+                }
+            }
         }
 
         async function clearCurrentScheme() {
@@ -2209,9 +2224,9 @@
             renderGrid();
             renderSchemeTabs();
             refreshTierBadge();
+            initColorFilterPanel();
             loadScheme();
             try {
-            initColorFilterPanel();
             maybeShowIntro();
             startBrandRotation();
             initBottomPanel();
