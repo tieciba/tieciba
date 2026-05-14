@@ -1607,6 +1607,7 @@
             const data = collectSchemeData();
             const filledCards = (data.inputs || []).filter(c => c.title || c.content).length;
             if (filledCards === 0) { showToast('方案为空'); return; }
+            if (!supa) { showToast('服务未就绪，请刷新页面后重试'); return; }
             const btn = el('shareSubmitBtn');
             btn.disabled = true;
             btn.textContent = '发布中…';
@@ -1674,6 +1675,7 @@
                     showToast('🌍 已发布到公开探索页！');
                 }
             } catch (e) {
+                console.error('[贴词吧 分享失败]', e);
                 showToast('分享失败：' + (e.message || e));
             }
             btn.disabled = false;
