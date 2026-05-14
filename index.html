@@ -1004,6 +1004,15 @@
                 <button class="share-btn-cancel" onclick="closeShareModal()">取消</button>
                 <button class="share-btn-submit" id="shareSubmitBtn" onclick="submitShare()">生成分享链接</button>
             </div>
+            <div class="share-result" id="shareResult" style="display:none;">
+                <p style="font-size:14px;color:#333;margin-bottom:12px;font-weight:600;">✅ 方案已保存，链接已生成</p>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <input type="text" id="shareResultLink" readonly style="flex:1;padding:10px 12px;border:2px solid #007aff;border-radius:8px;font-size:13px;background:#f0f7ff;outline:none;" onclick="this.select()">
+                    <button id="shareCopyBtn" onclick="copyShareLink()" style="padding:10px 16px;background:#007aff;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;white-space:nowrap;flex-shrink:0;">📋 复制</button>
+                </div>
+                <p style="font-size:12px;color:#888;line-height:1.6;margin-bottom:16px;">💡 将链接发送给朋友，对方打开后可一键导入你的方案到自己的贴词吧。</p>
+                <button onclick="closeShareModal()" style="padding:8px 28px;background:#f0f0f0;border:none;border-radius:8px;cursor:pointer;font-size:13px;">关闭</button>
+            </div>
         </div>
     </div>
 
@@ -1489,6 +1498,36 @@
 
         function closeShareModal() {
             el('shareModal').classList.remove('show');
+            // 重置结果面板
+            el('shareResult').style.display = 'none';
+            // 恢复表单元素
+            document.querySelector('#shareModal .share-type-toggle').style.display = '';
+            el('shareTitle').style.display = '';
+            el('shareDesc').style.display = '';
+            const pf = el('sharePublicFields'); if (pf) pf.style.display = '';
+            document.querySelector('#shareModal .share-buttons').style.display = '';
+            el('shareCopyBtn').textContent = '📋 复制';
+        }
+
+        function copyShareLink() {
+            const link = el('shareResultLink').value;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(() => {
+                    el('shareCopyBtn').textContent = '✅ 已复制';
+                    setTimeout(() => { el('shareCopyBtn').textContent = '📋 复制'; }, 2000);
+                }).catch(() => {
+                    // fallback
+                    el('shareResultLink').select();
+                    document.execCommand('copy');
+                    el('shareCopyBtn').textContent = '✅ 已复制';
+                    setTimeout(() => { el('shareCopyBtn').textContent = '📋 复制'; }, 2000);
+                });
+            } else {
+                // 不支持 clipboard API，选中文本让用户手动复制
+                el('shareResultLink').select();
+                el('shareCopyBtn').textContent = '已选中链接';
+                setTimeout(() => { el('shareCopyBtn').textContent = '📋 复制'; }, 2000);
+            }
         }
 
         function addShareImage(slot) {
@@ -1624,15 +1663,17 @@
                     });
                     if (error) throw error;
                     const link = `${window.location.origin}/s.html?id=${shortId}`;
-                    let copied = false;
+                    // 显示结果面板
+                    el('shareResultLink').value = link;
+                    document.querySelector('#shareModal .share-type-toggle').style.display = 'none';
+                    el('shareTitle').style.display = 'none';
+                    el('shareDesc').style.display = 'none';
+                    const pf = el('sharePublicFields'); if (pf) pf.style.display = 'none';
+                    document.querySelector('#shareModal .share-buttons').style.display = 'none';
+                    el('shareResult').style.display = 'block';
+                    // 自动复制到剪贴板
                     if (navigator.clipboard && navigator.clipboard.writeText) {
-                        try { await navigator.clipboard.writeText(link); copied = true; } catch(e) { console.warn('Clipboard write failed:', e); }
-                    }
-                    closeShareModal();
-                    if (copied) {
-                        showToast('🔗 私有分享链接已复制！');
-                    } else {
-                        showToast('🔗 分享链接: ' + link + ' (长按复制)');
+                        try { await navigator.clipboard.writeText(link); el('shareCopyBtn').textContent = '✅ 已复制'; } catch(e) {}
                     }
                 } else {
                     // 公开分享：上传图片到 Supabase Storage + 存 public_schemes
