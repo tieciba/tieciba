@@ -1624,9 +1624,16 @@
                     });
                     if (error) throw error;
                     const link = `${window.location.origin}/s.html?id=${shortId}`;
-                    await navigator.clipboard.writeText(link);
+                    let copied = false;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try { await navigator.clipboard.writeText(link); copied = true; } catch(e) { console.warn('Clipboard write failed:', e); }
+                    }
                     closeShareModal();
-                    showToast('🔗 私有分享链接已复制！');
+                    if (copied) {
+                        showToast('🔗 私有分享链接已复制！');
+                    } else {
+                        showToast('🔗 分享链接: ' + link + ' (长按复制)');
+                    }
                 } else {
                     // 公开分享：上传图片到 Supabase Storage + 存 public_schemes
                     let imageUrls = [];
