@@ -1523,9 +1523,14 @@
                     setTimeout(() => { el('shareCopyBtn').textContent = '📋 复制'; }, 2000);
                 });
             } else {
-                // 不支持 clipboard API，选中文本让用户手动复制
+                // 不支持 clipboard API，用 execCommand 全选+复制
                 el('shareResultLink').select();
-                el('shareCopyBtn').textContent = '已选中链接';
+                try {
+                    document.execCommand('copy');
+                    el('shareCopyBtn').textContent = '✅ 已复制';
+                } catch(e) {
+                    el('shareCopyBtn').textContent = '请手动 Ctrl+C';
+                }
                 setTimeout(() => { el('shareCopyBtn').textContent = '📋 复制'; }, 2000);
             }
         }
