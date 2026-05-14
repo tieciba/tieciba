@@ -9,10 +9,20 @@
     <title>贴词吧 - 提示词汇总工具</title>
     <!-- 老浏览器兼容补丁（Chrome 81等） -->
     <script>!function(){try{[].at(-1)}catch(e){Array.prototype.at=function(n){return this[(n<0?this.length:n)+n]}};try{structuredClone(1)}catch(e){window.structuredClone=function(o){return JSON.parse(JSON.stringify(o))}};try{({}).hasOwn?0:Object.defineProperty(Object.prototype,'hasOwn',{value:function(k){return Object.prototype.hasOwnProperty.call(this,k)},configurable:!0,writable:!0})}catch(e){};try{'a'.replaceAll('a','b')}catch(e){String.prototype.replaceAll=function(s,r){return this.split(s).join(r)}};try{Promise.allSettled([])}catch(e){Promise.allSettled=function(ps){return Promise.all(ps.map(p=>Promise.resolve(p).then(v=>({status:'fulfilled',value:v}),r=>({status:'rejected',reason:r}))))}};try{crypto.randomUUID()}catch(e){crypto.randomUUID=function(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=crypto.getRandomValues(new Uint8Array(1))[0]%16;return(c==='x'?r:r&0x3|0x8).toString(16)})}}}();</script>
+    <!-- 同步加载 supabase（优先，比异步 createElement 可靠，解决华为Chrome+WAF加载失败） -->
+    <script src="supabase.min.js" onerror="window.__SUPABASE_SYNC_FAIL__=true"></script>
     <!-- Supabase: 多CDN回退，适配腾讯WAF代理 -->
     <script>
     (function loadSupabase(){
         window.__SUPABASE_CALLBACKS__ = window.__SUPABASE_CALLBACKS__ || [];
+        // 同步标签已加载成功，跳过 CDN 回退
+        if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
+            window.__SUPABASE_LOADED__ = true;
+            window.__SUPABASE_SCRIPT_DONE__ = true;
+            var cbs = window.__SUPABASE_CALLBACKS__;
+            while (cbs.length) cbs.shift()(true);
+            return;
+        }
         var urls = [
             'supabase.min.js',                                                      // 1. 本地（直连）
             'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js', // 2. jsdelivr
