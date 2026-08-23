@@ -1,0 +1,3 @@
+:HL["/kids/_next/static/chunks/3owv0-05m6q2x.css","style"]
+:HL["/kids/_next/static/media/f0a4daef14b612ba-s.p.1vvo1a9o-5phv.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"level","param":null,"prefetchHints":4192,"slots":{"children":{"name":"slug","param":{"type":"d","key":"1-3-being-clear","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"XFybDFPfCSKmiGKfu524w"}

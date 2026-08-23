@@ -1148,6 +1148,22 @@
     }
     .nav-explore-icon:hover { background: #f3f4f6; }
 
+    /* 妙贴提示词乐园入口 */
+    .nav-kids-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        color: var(--text);
+        transition: background var(--ease), transform var(--ease);
+        white-space: nowrap;
+    }
+    .nav-kids-link:hover { background: #f3f4f6; transform: translateY(-1px); }
+
 
 
 
@@ -1181,6 +1197,7 @@
         </div>
         <input type="text" class="card-search-input" id="cardSearchInput" placeholder="🔍 搜索" oninput="filterCards()">
         <div class="auth-area" id="authArea">
+            <a href="/kids/" class="nav-kids-link" title="妙贴提示词乐园：和小猫妙妙一起学写提示词">🐱 学习</a>
             <a href="/explore.html" class="nav-explore-icon" title="探索糍粑摊">💡</a>
             <span class="tier-badge" id="tierBadge">试吃杯</span>
             <button id="redeemBtn" class="btn-redeem" onclick="openRedeemModal()" style="display:none">🎟️</button>
