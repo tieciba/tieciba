@@ -1746,6 +1746,8 @@
             // 收集当前激活的颜色筛选
             const activeBlocks = document.querySelectorAll('.filter-color-block.active');
             data.activeFilters = Array.from(activeBlocks).map(b => b.dataset.color);
+            // 记录该方案的呈现方式（矩阵/列表），云端同步后二次打开可恢复
+            try { data.layout = localStorage.getItem('tieciba-layout') === 'list' ? 'list' : 'grid'; } catch (e) { data.layout = 'grid'; }
             return data;
         }
 
@@ -2157,6 +2159,13 @@
                         if (block) block.classList.add('active');
                     });
                 }
+            }
+            // 恢复该方案的呈现方式（矩阵/列表）——来自云端或本地保存的 data.layout
+            if (data.layout === 'list' || data.layout === 'grid') {
+                try {
+                    localStorage.setItem('tieciba-layout', data.layout);
+                    if (typeof applyLayout === 'function') applyLayout(data.layout);
+                } catch (e) {}
             }
         }
 
@@ -2617,6 +2626,8 @@
             el('schemeSelect').value = currentScheme;
             updateGraceBanner();
             loadScheme();
+            // 登录后拉取云端使用统计（跨设备累计次数）
+            loadCloudStats();
         }
 
         /* ========== 初始化 ========== */
@@ -2997,7 +3008,8 @@
             return !!(c && c.classList.contains('layout-list'));
         }
 
-        /* ---- 使用统计（localStorage: tieciba-card-stats）---- */
+        /* ---- 使用统计（localStorage + 云端 user_stats 表，登录跨设备累计）---- */
+        var _statsSyncTimer = null;
         function cardStatsKey(idx) {
             var t = el('title' + idx), c = el('content' + idx);
             if (!t || !c) return null;
@@ -3010,6 +3022,60 @@
         }
         function saveCardStats(s) {
             try { localStorage.setItem('tieciba-card-stats', JSON.stringify(s)); } catch (e) {}
+            scheduleStatsSync();
+        }
+        // 云端：登录后拉取合并（云端为基准，本地为空时用云端；本地有而云端没有的合并进来）
+        async function loadCloudStats() {
+            if (!currentUser) return;
+            try {
+                const { data: rows } = await supa
+                    .from('user_stats')
+                    .select('stats')
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+                if (rows && rows.stats) {
+                    const local = getCardStats();
+                    // 合并：同一卡片取 count 较大者，last 取较新者（云+本地双向累计）
+                    const merged = {};
+                    const allKeys = new Set(Object.keys(rows.stats).concat(Object.keys(local)));
+                    allKeys.forEach(k => {
+                        const a = rows.stats[k], b = local[k];
+                        if (!a) { merged[k] = b; return; }
+                        if (!b) { merged[k] = a; return; }
+                        merged[k] = {
+                            count: Math.max(a.count || 0, b.count || 0),
+                            last: Math.max(a.last || 0, b.last || 0)
+                        };
+                    });
+                    localStorage.setItem('tieciba-card-stats', JSON.stringify(merged));
+                    refreshAllStatsBadges();
+                    // 合并后回推云端（补上本地新增的）
+                    scheduleStatsSync();
+                }
+            } catch (e) { console.warn('云统计拉取失败：', e); }
+        }
+        // 云端：防抖推送（1.2s）
+        function scheduleStatsSync() {
+            if (!currentUser) return;
+            clearTimeout(_statsSyncTimer);
+            _statsSyncTimer = setTimeout(async () => {
+                try {
+                    await supa.from('user_stats').upsert({
+                        user_id: currentUser.id,
+                        stats: getCardStats(),
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_id' });
+                } catch (e) { console.warn('云统计同步失败：', e); }
+            }, 1200);
+        }
+        function refreshAllStatsBadges() {
+            const grid = el('inputGrid');
+            if (!grid) return;
+            const items = grid.querySelectorAll('.input-item');
+            for (let n = 0; n < items.length; n++) {
+                const idx = items[n].id.replace('item', '');
+                updateStatsBadge(parseInt(idx));
+            }
         }
         function relTime(ts) {
             var d = Date.now() - ts;
