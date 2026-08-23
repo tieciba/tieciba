@@ -3294,9 +3294,14 @@
 
         // 搜索框事件绑定（DOM 已解析，直接绑定）
         (function initListTools() {
+            // ★ 强制清空搜索框：防止浏览器自动填充/扩展把登录邮箱等无关内容塞进搜索框，
+            //   导致点击页面时按邮箱过滤全部卡片（卡片"消失"的根因）
             var si = el('listSearchInput');
             if (si) {
                 si.setAttribute('autocomplete', 'off');
+                si.setAttribute('autocorrect', 'off');
+                si.setAttribute('spellcheck', 'false');
+                si.value = '';
                 si.addEventListener('input', function () { markSearchTouched(); applyListSearch(si.value); });
                 si.addEventListener('focus', markSearchTouched);
                 si.addEventListener('keydown', function (e) {
@@ -3306,9 +3311,19 @@
             var csi = el('cardSearchInput');
             if (csi) {
                 csi.setAttribute('autocomplete', 'off');
+                csi.setAttribute('autocorrect', 'off');
+                csi.setAttribute('spellcheck', 'false');
+                csi.value = '';
                 csi.addEventListener('input', function () { markSearchTouched(); applyListSearch(csi.value); });
                 csi.addEventListener('focus', markSearchTouched);
             }
+            // 登录态恢复后再次清空（自动填充常在此时写入）
+            var _clearSearchBoxes = function () {
+                var a = el('listSearchInput'); if (a) a.value = '';
+                var b = el('cardSearchInput'); if (b) b.value = '';
+            };
+            setTimeout(_clearSearchBoxes, 1500);
+            setTimeout(_clearSearchBoxes, 4000);
             // 同步排序按钮初始选中态
             var btns = document.querySelectorAll('.sort-btn');
             for (var i = 0; i < btns.length; i++) {
