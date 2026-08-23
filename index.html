@@ -1605,10 +1605,15 @@
             const grid = el('inputGrid');
             const srcItem = el('item' + idx);
             if (!grid || !srcItem) return;
-            // 上限检查
+            // 上限检查：按"有内容的卡片数"计（空卡片不占名额，可复制到空位）
             const limit = getEffectiveCardLimit();
-            const cur = grid.querySelectorAll('.input-item').length;
-            if (cur >= limit) {
+            const filledCount = Array.from(grid.querySelectorAll('.input-item')).filter(it => {
+                const t = it.querySelector('.title'), c = it.querySelector('.content');
+                return (t && t.value.trim()) || (c && c.value.trim());
+            }).length;
+            // 复制会增加一张有内容的卡片；当前有内容卡已满且无空位可占用时拦截
+            const emptySlots = grid.querySelectorAll('.input-item').length - filledCount;
+            if (filledCount >= limit && emptySlots <= 0) {
                 showToast(`已达卡片上限（${limit} 张），无法复制`);
                 return;
             }
