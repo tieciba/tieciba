@@ -1195,7 +1195,7 @@
             <span class="brand-state brand-state-2">贴糍粑</span>
             <span class="brand-state brand-state-3"><img src="monster.gif" alt="贴词吧" onerror="this.parentElement.style.display='none'"></span>
         </div>
-        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="🔍 搜索" oninput="filterCards()">
+        <input type="text" class="card-search-input" id="cardSearchInput" placeholder="🔍 搜索" oninput="filterCards(this.value)">
         <div class="auth-area" id="authArea">
             <a href="/kids/" class="nav-kids-link" title="妙贴提示词乐园：和小猫妙妙一起学写提示词">🐱 学习</a>
             <a href="/explore.html" class="nav-explore-icon" title="探索糍粑摊">💡</a>
@@ -3150,6 +3150,13 @@
             }
             // 搜索后选中行可能已被隐藏，重置选中
             if (listSelectedItem && listSelectedItem.style.display === 'none') selectListRow(null);
+        }
+
+        // 导航栏搜索框（矩阵/列表通用过滤）：同步列表过滤框的值
+        function filterCards(kw) {
+            var li = el('listSearchInput');
+            if (li) li.value = kw || '';
+            applyListSearch(kw);
         }
 
         /* ---- 键盘导航（仅列表模式）---- */
