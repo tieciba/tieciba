@@ -3123,9 +3123,22 @@
                 return esc.replace(new RegExp('(' + kwSafe + ')', 'gi'), '<mark>$1</mark>');
             } catch (e) { return esc; }
         }
+        // 搜索词门禁：仅当用户真正聚焦/操作过搜索框时才过滤。
+        // 防止浏览器扩展（翻译/密码管理等）向输入框注入内容时误过滤隐藏全部卡片。
+        var _searchUserTouched = false;
+        function markSearchTouched() { _searchUserTouched = true; }
+
         function applyListSearch(kw) {
             var grid = el('inputGrid');
             if (!grid) return;
+            // 防御：无用户操作痕迹时忽略注入值（插件/自动填充产生的非空值）
+            if (!_searchUserTouched) {
+                var si = el('listSearchInput');
+                if (si && si.value) si.value = '';
+                var csi = el('cardSearchInput');
+                if (csi && csi.value) csi.value = '';
+                kw = '';
+            }
             kw = (kw || '').trim().toLowerCase();
             var items = grid.querySelectorAll('.input-item');
             for (var n = 0; n < items.length; n++) {
@@ -3282,11 +3295,20 @@
         // 搜索框事件绑定（DOM 已解析，直接绑定）
         (function initListTools() {
             var si = el('listSearchInput');
-            if (!si) return;
-            si.addEventListener('input', function () { applyListSearch(si.value); });
-            si.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape') { si.value = ''; applyListSearch(''); si.blur(); }
-            });
+            if (si) {
+                si.setAttribute('autocomplete', 'off');
+                si.addEventListener('input', function () { markSearchTouched(); applyListSearch(si.value); });
+                si.addEventListener('focus', markSearchTouched);
+                si.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') { si.value = ''; applyListSearch(''); si.blur(); }
+                });
+            }
+            var csi = el('cardSearchInput');
+            if (csi) {
+                csi.setAttribute('autocomplete', 'off');
+                csi.addEventListener('input', function () { markSearchTouched(); applyListSearch(csi.value); });
+                csi.addEventListener('focus', markSearchTouched);
+            }
             // 同步排序按钮初始选中态
             var btns = document.querySelectorAll('.sort-btn');
             for (var i = 0; i < btns.length; i++) {
