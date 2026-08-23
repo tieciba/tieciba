@@ -264,6 +264,28 @@
         .color-picker-btn:hover { background: #e5e7eb; transform: translateY(-1px); }
         .color-picker-btn:active { transform: translateY(0); }
 
+        /* 复制卡片按钮（调色块左侧，同尺寸方形，复制图标） */
+        .copy-card-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--ease), transform var(--ease);
+            flex-shrink: 0;
+            color: var(--text-2);
+        }
+        .copy-card-btn:hover { background: #e5e7eb; transform: translateY(-1px); color: var(--text); }
+        .copy-card-btn:active { transform: translateY(0); }
+        .copy-card-btn svg { width: 14px; height: 14px; }
+
         /* 布局切换工具栏（矩阵 / 列表） */
         .layout-toolbar {
             display: flex;
@@ -1521,6 +1543,7 @@
                 item.innerHTML = `
                     <div class="title-row">
                         <input type="text" class="title" placeholder="标题${i}" maxlength="6" id="title${i}">
+                        <button class="copy-card-btn" type="button" title="复制卡片" onclick="duplicateCard(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                         <button class="color-picker-btn" type="button" onclick="toggleColorBlocks(${i})">🖌</button>
                     </div>
                     <div class="color-blocks" id="colorBlocks${i}">
@@ -1575,6 +1598,87 @@
                 };
                 grid.appendChild(cta);
             }
+        }
+
+        /* ========== 复制卡片：在源卡片后方插入副本（标题/内容/颜色复制，统计归零） ========== */
+        function duplicateCard(idx) {
+            const grid = el('inputGrid');
+            const srcItem = el('item' + idx);
+            if (!grid || !srcItem) return;
+            // 上限检查
+            const limit = getEffectiveCardLimit();
+            const cur = grid.querySelectorAll('.input-item').length;
+            if (cur >= limit) {
+                showToast(`已达卡片上限（${limit} 张），无法复制`);
+                return;
+            }
+            // 读取源卡片内容
+            const title = el('title' + idx).value;
+            const content = el('content' + idx).value;
+            const sel = srcItem.querySelector('.color-block.selected');
+            const color = sel ? sel.dataset.color : '#ffffff';
+            if (!title.trim() && !content.trim()) {
+                showToast('请先填写内容再复制');
+                return;
+            }
+            // 新卡片编号：现有最大 id + 1
+            let maxId = 0;
+            grid.querySelectorAll('.input-item').forEach(it => {
+                const n = parseInt(it.id.replace('item', '')) || 0;
+                if (n > maxId) maxId = n;
+            });
+            const ni = maxId + 1;
+            // 克隆源卡片结构
+            const newItem = srcItem.cloneNode(true);
+            newItem.id = 'item' + ni;
+            newItem.setAttribute('data-dup', '_dup' + ni);
+            // 去掉可能的状态类
+            newItem.classList.remove('row-selected');
+            // 更新内部 id 与值
+            const t = newItem.querySelector('.title'); if (t) { t.id = 'title' + ni; t.value = title; }
+            const c = newItem.querySelector('.content'); if (c) { c.id = 'content' + ni; c.value = content; }
+            const cb = newItem.querySelector('.color-blocks'); if (cb) cb.id = 'colorBlocks' + ni;
+            // 颜色：清除选中态，再按源颜色选中
+            newItem.querySelectorAll('.color-block.selected').forEach(b => b.classList.remove('selected'));
+            if (color !== '#ffffff') {
+                const target = newItem.querySelector(`.color-block[data-color="${color}"]`);
+                if (target) target.classList.add('selected');
+                newItem.style.backgroundColor = color + '20';
+                const btn = newItem.querySelector('.color-picker-btn');
+                if (btn) btn.style.backgroundColor = color;
+            } else {
+                newItem.style.backgroundColor = '';
+                const btn = newItem.querySelector('.color-picker-btn');
+                if (btn) btn.style.backgroundColor = '#f0f0f0';
+            }
+            // 按钮 onclick 改为新编号
+            const picker = newItem.querySelector('.color-picker-btn');
+            if (picker) picker.setAttribute('onclick', `toggleColorBlocks(${ni})`);
+            const dupBtn = newItem.querySelector('.copy-card-btn');
+            if (dupBtn) dupBtn.setAttribute('onclick', `duplicateCard(${ni})`);
+            newItem.querySelectorAll('.color-block').forEach(b => {
+                b.setAttribute('onclick', `selectColor(${ni}, '${b.dataset.color}', this)`);
+            });
+            const sumBtn = newItem.querySelector('button[onclick^="addToSummary"]');
+            if (sumBtn) sumBtn.setAttribute('onclick', `addToSummary(${ni})`);
+            // 插入到源卡片之后
+            srcItem.after(newItem);
+            // 绑定事件（预览、自动保存、失焦保存）
+            el('title' + ni).addEventListener('mouseenter', (e) => showPreview(ni, e));
+            el('title' + ni).addEventListener('mouseleave', hidePreview);
+            el('content' + ni).addEventListener('mouseenter', (e) => showPreview(ni, e));
+            el('content' + ni).addEventListener('mouseleave', hidePreview);
+            el('title' + ni).addEventListener('input', debouncedAutoSave);
+            el('content' + ni).addEventListener('input', debouncedAutoSave);
+            el('title' + ni).addEventListener('blur', saveOnBlur);
+            el('content' + ni).addEventListener('blur', saveOnBlur);
+            // 重建列表增强（统计徽标/预览span/排序/搜索），矩阵/列表通用
+            try { if (typeof listEnhanceAfterRender === 'function') listEnhanceAfterRender(); } catch (e) { console.error('[复制卡片]', e); }
+            // 触发自动保存
+            try { debouncedAutoSave(); } catch (e) {}
+            showToast(`已复制为卡片 ${ni}`);
+            // 新卡片滚动进入视野
+            try { el('item' + ni).scrollIntoView({ block: 'nearest' }); } catch (e) {}
         }
 
         /* ========== 渲染：方案下拉 ========== */
@@ -3019,7 +3123,10 @@
             if (!t || !c) return null;
             var title = t.value.trim(), content = c.value.trim();
             if (!title && !content) return null;
-            return title + '|' + content.slice(0, 50);
+            // 复制卡（data-dup）统计独立：key 加后缀，保持 ⤴ 0 次 起步
+            var item = el('item' + idx);
+            var dup = (item && item.getAttribute('data-dup')) || '';
+            return title + '|' + content.slice(0, 50) + dup;
         }
         function getCardStats() {
             try { return JSON.parse(localStorage.getItem('tieciba-card-stats')) || {}; } catch (e) { return {}; }
