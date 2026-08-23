@@ -2167,6 +2167,10 @@
                     if (typeof applyLayout === 'function') applyLayout(data.layout);
                 } catch (e) {}
             }
+            // 内容填充完成后刷新统计徽标（云端统计可能已在卡片渲染前返回，需重新计算）
+            if (typeof refreshAllStatsBadges === 'function') {
+                try { refreshAllStatsBadges(); } catch (e) {}
+            }
         }
 
         async function clearCurrentScheme() {
@@ -3197,15 +3201,18 @@
         function applyListSearch(kw) {
             var grid = el('inputGrid');
             if (!grid) return;
-            // 防御：无用户操作痕迹时忽略注入值（插件/自动填充产生的非空值）
-            if (!_searchUserTouched) {
+            kw = (kw || '').trim();
+            // 防御：未聚焦（自动填充/扩展注入）或值含 @（邮箱特征）时，
+            // 忽略注入值并恢复全部卡片显示，防止"卡片消失"
+            var looksInjected = !_searchUserTouched || kw.indexOf('@') !== -1;
+            if (looksInjected && kw) {
                 var si = el('listSearchInput');
                 if (si && si.value) si.value = '';
                 var csi = el('cardSearchInput');
                 if (csi && csi.value) csi.value = '';
                 kw = '';
             }
-            kw = (kw || '').trim().toLowerCase();
+            kw = kw.toLowerCase();
             var items = grid.querySelectorAll('.input-item');
             for (var n = 0; n < items.length; n++) {
                 var item = items[n];
@@ -3368,8 +3375,9 @@
                 si.setAttribute('autocorrect', 'off');
                 si.setAttribute('spellcheck', 'false');
                 si.value = '';
-                si.addEventListener('input', function () { markSearchTouched(); applyListSearch(si.value); });
-                si.addEventListener('focus', markSearchTouched);
+                // 注意：input 事件不开启门禁（自动填充也会触发 input），仅 focus 视为用户操作
+                si.addEventListener('input', function () { applyListSearch(si.value); });
+                si.addEventListener('focus', function () { markSearchTouched(); si.value = ''; applyListSearch(''); });
                 si.addEventListener('keydown', function (e) {
                     if (e.key === 'Escape') { si.value = ''; applyListSearch(''); si.blur(); }
                 });
@@ -3380,13 +3388,14 @@
                 csi.setAttribute('autocorrect', 'off');
                 csi.setAttribute('spellcheck', 'false');
                 csi.value = '';
-                csi.addEventListener('input', function () { markSearchTouched(); applyListSearch(csi.value); });
-                csi.addEventListener('focus', markSearchTouched);
+                csi.addEventListener('input', function () { applyListSearch(csi.value); });
+                csi.addEventListener('focus', function () { markSearchTouched(); csi.value = ''; applyListSearch(''); });
             }
-            // 登录态恢复后再次清空（自动填充常在此时写入）
+            // 登录态恢复后再次清空并恢复卡片显示（自动填充常在此时写入）
             var _clearSearchBoxes = function () {
                 var a = el('listSearchInput'); if (a) a.value = '';
                 var b = el('cardSearchInput'); if (b) b.value = '';
+                applyListSearch('');
             };
             setTimeout(_clearSearchBoxes, 1500);
             setTimeout(_clearSearchBoxes, 4000);
