@@ -559,7 +559,8 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            margin-right: 2px;
+            margin-left: auto;   /* 把复制按钮推到最右，紧贴调色按钮 */
+            margin-right: 0;     /* 抵消 title-row gap，让两按钮贴紧 */
             transition: background var(--ease), transform var(--ease);
         }
         .input-item button.copy-card-btn:hover { background: #d1d6de; transform: translateY(-1px); color: #3a76e0; }
