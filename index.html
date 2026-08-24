@@ -545,7 +545,7 @@
         .input-item button:not(.color-picker-btn):hover { background: var(--primary-dark); transform: translateY(-1px); }
         .input-item button:not(.color-picker-btn):active { background: var(--primary-dark); transform: translateY(0); }
         /* 复制卡片按钮：覆盖通用按钮样式（浅灰底 + 蓝色图标），紧贴调色块左侧留间隙 */
-        .input-item .copy-card-btn {
+        .input-item button.copy-card-btn {
             width: 28px;
             height: 28px;
             background: #e2e5ea;
@@ -562,9 +562,9 @@
             margin-right: 2px;
             transition: background var(--ease), transform var(--ease);
         }
-        .input-item .copy-card-btn:hover { background: #d1d6de; transform: translateY(-1px); color: #3a76e0; }
-        .input-item .copy-card-btn:active { transform: translateY(0); }
-        .input-item .copy-card-btn svg { width: 14px; height: 14px; }
+        .input-item button.copy-card-btn:hover { background: #d1d6de; transform: translateY(-1px); color: #3a76e0; }
+        .input-item button.copy-card-btn:active { transform: translateY(0); }
+        .input-item button.copy-card-btn svg { width: 14px; height: 14px; }
 
         /* 固定在底部的汇总区域 */
         .summary-section {
