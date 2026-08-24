@@ -421,6 +421,11 @@
             flex-shrink: 0;
         }
         .list-stats.is-zero { color: var(--text-3); opacity: .75; }
+        /* 使用次数分级配色：位数越高颜色越醒目（0灰/1位蓝/2位紫/3位橙/4位+红） */
+        .list-stats.is-lv1 { color: #4c8bf5; }
+        .list-stats.is-lv2 { color: #9b59b6; }
+        .list-stats.is-lv3 { color: #e67e22; }
+        .list-stats.is-lv4 { color: #e74c3c; }
         .container.layout-list .input-item .card-foot {
             order: 4;
             gap: 6px;
@@ -3218,9 +3223,13 @@
             if (!badge) return;
             var k = cardStatsKey(idx);
             var s = k ? getCardStats()[k] : null;
+            // 清除旧分级
+            badge.classList.remove('is-zero', 'is-lv1', 'is-lv2', 'is-lv3', 'is-lv4');
             if (s && s.count > 0) {
                 badge.textContent = '⤴ ' + s.count + ' 次 · ' + relTime(s.last);
-                badge.classList.remove('is-zero');
+                // 按位数分级：1位蓝 / 2位紫 / 3位橙 / 4位及以上红
+                var digits = String(s.count).length;
+                badge.classList.add(digits >= 4 ? 'is-lv4' : digits === 3 ? 'is-lv3' : digits === 2 ? 'is-lv2' : 'is-lv1');
             } else {
                 badge.textContent = '⤴ 0 次';
                 badge.classList.add('is-zero');
