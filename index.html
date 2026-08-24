@@ -297,7 +297,7 @@
 
         /* 列表模式：单列通栏（切换时轻微淡入淡出） */
         .grid { transition: opacity 0.15s ease; }
-        .container.layout-list .grid { grid-template-columns: 1fr; }
+        .container.layout-list .grid { grid-template-columns: 1fr; gap: 5px; }
 
         /* 排序 + 搜索工具（两种布局模式都显示） */
         .list-tools {
@@ -356,11 +356,11 @@
             flex-direction: row;
             flex-wrap: wrap;
             align-items: center;
-            gap: 6px;
-            padding: 6px 8px 6px 12px;
+            gap: 4px;
+            padding: 3px 8px 3px 12px;
             border-left: 4px solid var(--row-color, #e5e7eb);
             border-radius: var(--radius-sm);
-            min-height: 40px;
+            min-height: 34px;
             background-clip: padding-box;
         }
         .container.layout-list .input-item .title-row {
@@ -2275,7 +2275,8 @@
                 }
             }
             // 恢复该方案的呈现方式（矩阵/列表）——来自云端或本地保存的 data.layout
-            if (data.layout === 'list' || data.layout === 'grid') {
+            // 用户手动切过布局后不覆盖（避免静置/刷新时列表被切回矩阵）
+            if (!_layoutUserTouched && (data.layout === 'list' || data.layout === 'grid')) {
                 try {
                     localStorage.setItem('tieciba-layout', data.layout);
                     if (typeof applyLayout === 'function') applyLayout(data.layout);
@@ -2719,7 +2720,7 @@
         }
 
         /* ========== 认证状态变化时统一刷新 ========== */
-        async function onAuthChanged(session) {
+        async function onAuthChanged(session, skipSchemeReload) {
             currentUser = session ? session.user : null;
             currentTier = 'free';
             if (currentUser) {
@@ -2743,7 +2744,9 @@
             refreshTierBadge();
             el('schemeSelect').value = currentScheme;
             updateGraceBanner();
-            loadScheme();
+            if (!skipSchemeReload) {
+                loadScheme();
+            }
             // 登录后拉取云端使用统计（跨设备累计次数）
             loadCloudStats();
         }
@@ -3049,8 +3052,13 @@
 
             // 监听 session 变化（自动刷新 token 等）— 始终注册，不受导入弹窗影响
             try { if (supa) { supa.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (event === 'SIGNED_OUT') {
                     onAuthChanged(session);
+                } else if (event === 'SIGNED_IN') {
+                    onAuthChanged(session);
+                } else if (event === 'TOKEN_REFRESHED') {
+                    // token 静默刷新：只更新用户信息，不重载方案/布局，避免列表被切回矩阵
+                    onAuthChanged(session, true);
                 }
             }); } } catch(e) {}
 
@@ -3092,6 +3100,8 @@
         function setLayout(mode) {
             if (mode !== 'grid' && mode !== 'list') mode = 'grid';
             try { localStorage.setItem('tieciba-layout', mode); } catch (e) {}
+            // 用户手动切换布局：标记后，方案重载/云端数据不再覆盖当前布局
+            _layoutUserTouched = true;
             applyLayout(mode);
             // 排序与搜索状态跨模式保持；键盘选中态仅列表模式存在
             applyListSort(listSortMode);
@@ -3111,6 +3121,8 @@
             try { mode = localStorage.getItem('tieciba-layout') === 'list' ? 'list' : 'grid'; } catch (e) {}
             applyLayout(mode);
         })();
+        // 用户是否手动切过布局（手动切过后，方案重载/云端数据不再覆盖当前布局）
+        var _layoutUserTouched = false;
 
         /* ========== 列表/矩阵增强：统计 / 排序 / 搜索 / 键盘导航（键盘导航仅列表模式）========== */
         var listSortMode = 'default';
